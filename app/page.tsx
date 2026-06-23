@@ -1,4 +1,4 @@
-import { ComputationalNotebook } from "@/components/notebook/computational-notebook";
+import { ComputationalNotebook } from "@/features/notebook/ui/computational-notebook";
 
 export const metadata = {
     title: "Computational Notebook | MathSphere",

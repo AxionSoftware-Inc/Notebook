@@ -260,6 +260,7 @@ export function ComputationalNotebook() {
         () => blocks.filter((block) => selectedBlockIds.has(block.id)).map(blockToMarkdown).join("\n\n"),
         [blocks, selectedBlockIds],
     );
+    const deferredOutlineSearch = React.useDeferredValue(outlineSearch);
     const dependencyGraph = React.useMemo(() => {
         const solveBlocks = blocks.filter((block) => block.kind === "solve");
         return blocks.map((block, index) => {
@@ -287,13 +288,13 @@ export function ComputationalNotebook() {
             if (hideSettled && block.config?.stale !== "true" && block.config?.executedAt) {
                 return false;
             }
-            if (!outlineSearch.trim()) {
+            if (!deferredOutlineSearch.trim()) {
                 return true;
             }
             const haystack = `${block.title} ${block.kind} ${block.content}`.toLowerCase();
-            return haystack.includes(outlineSearch.trim().toLowerCase());
+            return haystack.includes(deferredOutlineSearch.trim().toLowerCase());
         });
-    }, [blocks, hideSettled, outlineFilter, outlineSearch]);
+    }, [blocks, hideSettled, outlineFilter, deferredOutlineSearch]);
 
     React.useEffect(() => {
         let alive = true;
@@ -977,7 +978,7 @@ function NotebookBlockCard({
             {!collapsed ? (
                 <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                     <BlockEditor block={block} onChange={onChange} />
-                    <BlockPreview block={block} />
+                    {active ? <BlockPreview block={block} /> : <CollapsedPreview block={block} />}
                 </div>
             ) : null}
         </section>
@@ -1164,6 +1165,15 @@ function Metric({ label, value }: { label: string; value: string }) {
         <div className="site-soft-panel rounded-[1.1rem] bg-background/80 p-3">
             <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
             <div className="mt-2 break-words font-mono text-sm font-black">{value}</div>
+        </div>
+    );
+}
+
+function CollapsedPreview({ block }: { block: NotebookBlock }) {
+    return (
+        <div className="rounded-[1.25rem] border border-dashed border-border/60 bg-background/50 p-3 text-xs text-muted-foreground">
+            Preview hidden for performance. Focus the block to render it live.
+            <div className="mt-2 font-mono text-[11px] text-foreground/70">{block.kind} · {block.content.length} chars</div>
         </div>
     );
 }

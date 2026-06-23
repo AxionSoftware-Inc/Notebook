@@ -10,3 +10,4 @@ backend/**/__pycache__/
 .env
 .env.*
 !.env.example
+node_modules

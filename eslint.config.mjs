@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "node_modules/**",
+    "backend/.venv/**",
+    "backend/db.sqlite3",
     "next-env.d.ts",
   ]),
 ]);

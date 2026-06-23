@@ -3,7 +3,7 @@ import { Manrope, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SiteNavbar } from "@/components/site-navbar";
+import { SiteNavbar } from "@/widgets/layout/site-navbar";
 
 const manrope = Manrope({
     subsets: ["latin"],
