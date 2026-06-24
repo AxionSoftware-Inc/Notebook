@@ -4,6 +4,11 @@ backend/.venv/
 backend/db.sqlite3
 backend/staticfiles/
 backend/media/
+coverage/
+playwright-report/
+test-results/
+postgres_data/
+redis_data/
 backend/__pycache__/
 backend/**/__pycache__/
 *.pyc

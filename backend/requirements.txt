@@ -8,6 +8,7 @@ pillow
 psycopg2-binary
 PyJWT
 python-dotenv
+redis
 sqlparse
 tzdata
 gunicorn

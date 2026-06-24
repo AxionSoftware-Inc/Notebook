@@ -44,8 +44,9 @@ function buildHeaders(options: RequestInit, token?: string): Record<string, stri
         headers["Content-Type"] = "application/json";
     }
 
-    if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+    const browserToken = typeof window !== "undefined" ? window.localStorage.getItem("notebook_access_token") : null;
+    if (token || browserToken) {
+        headers["Authorization"] = `Bearer ${token || browserToken}`;
     }
 
     return headers;

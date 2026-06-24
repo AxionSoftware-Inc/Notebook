@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from .models import NotebookDocument
+from .models import (
+    NotebookDocument,
+    NotebookExecutionJob,
+    NotebookExecutionRecord,
+    NotebookImportRecord,
+    NotebookSnapshot,
+)
 
 
 ALLOWED_BLOCK_KINDS = {
@@ -10,23 +16,55 @@ ALLOWED_BLOCK_KINDS = {
     "graph",
     "table",
     "python",
+    "code",
     "theorem",
+    "proof",
     "exercise",
     "answer",
     "export",
     "lab-result",
+    "result",
 }
+
+
+def validate_block_payload(value):
+    if not isinstance(value, list):
+        raise serializers.ValidationError("blocks must be a list.")
+    if len(value) > 250:
+        raise serializers.ValidationError("A notebook can contain at most 250 blocks.")
+    if len(str(value)) > 500000:
+        raise serializers.ValidationError("Notebook blocks payload is too large.")
+
+    for index, block in enumerate(value):
+        if not isinstance(block, dict):
+            raise serializers.ValidationError(f"Block {index + 1} must be an object.")
+        kind = block.get("kind")
+        if kind not in ALLOWED_BLOCK_KINDS:
+            raise serializers.ValidationError(f"Block {index + 1} kind is invalid.")
+        if not isinstance(block.get("id"), str) or not block["id"].strip():
+            raise serializers.ValidationError(f"Block {index + 1} id is required.")
+        if not isinstance(block.get("title"), str):
+            raise serializers.ValidationError(f"Block {index + 1} title is required.")
+        if not isinstance(block.get("content"), str):
+            raise serializers.ValidationError(f"Block {index + 1} content is required.")
+        config = block.get("config", {})
+        if config is not None and not isinstance(config, dict):
+            raise serializers.ValidationError(f"Block {index + 1} config must be an object.")
+    return value
 
 
 class NotebookDocumentSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)
+    owner = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = NotebookDocument
         fields = [
             "id",
+            "owner",
             "title",
             "summary",
+            "visibility",
             "blocks",
             "metadata",
             "revision",
@@ -36,30 +74,16 @@ class NotebookDocumentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "revision", "created_at", "updated_at"]
 
-    def validate_blocks(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("blocks must be a list.")
-        if len(value) > 250:
-            raise serializers.ValidationError("A notebook can contain at most 250 blocks.")
-        if len(str(value)) > 500000:
-            raise serializers.ValidationError("Notebook blocks payload is too large.")
+    def get_owner(self, obj):
+        if not obj.owner_id:
+            return None
+        return {
+            "id": obj.owner_id,
+            "username": obj.owner.get_username(),
+        }
 
-        for index, block in enumerate(value):
-            if not isinstance(block, dict):
-                raise serializers.ValidationError(f"Block {index + 1} must be an object.")
-            kind = block.get("kind")
-            if kind not in ALLOWED_BLOCK_KINDS:
-                raise serializers.ValidationError(f"Block {index + 1} kind is invalid.")
-            if not isinstance(block.get("id"), str) or not block["id"].strip():
-                raise serializers.ValidationError(f"Block {index + 1} id is required.")
-            if not isinstance(block.get("title"), str):
-                raise serializers.ValidationError(f"Block {index + 1} title is required.")
-            if not isinstance(block.get("content"), str):
-                raise serializers.ValidationError(f"Block {index + 1} content is required.")
-            config = block.get("config", {})
-            if config is not None and not isinstance(config, dict):
-                raise serializers.ValidationError(f"Block {index + 1} config must be an object.")
-        return value
+    def validate_blocks(self, value):
+        return validate_block_payload(value)
 
     def validate_metadata(self, value):
         if not isinstance(value, dict):
@@ -76,3 +100,141 @@ class NotebookDocumentSerializer(serializers.ModelSerializer):
         if self.instance and self.instance.is_locked and self.context["request"].method in {"PUT", "PATCH"}:
             raise serializers.ValidationError({"is_locked": "Locked notebook cannot be modified."})
         return attrs
+
+
+class NotebookSnapshotSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    document_id = serializers.UUIDField(source="document.public_id", read_only=True)
+
+    class Meta:
+        model = NotebookSnapshot
+        fields = [
+            "id",
+            "document_id",
+            "label",
+            "source",
+            "blocks",
+            "metadata",
+            "revision",
+            "is_named",
+            "created_at",
+        ]
+        read_only_fields = ["id", "document_id", "revision", "created_at"]
+
+    def validate_blocks(self, value):
+        return validate_block_payload(value)
+
+
+class NotebookExecutionRecordSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    document_id = serializers.UUIDField(source="document.public_id", read_only=True)
+
+    class Meta:
+        model = NotebookExecutionRecord
+        fields = [
+            "id",
+            "document_id",
+            "block_id",
+            "block_kind",
+            "title",
+            "status",
+            "runtime",
+            "cache_key",
+            "detail",
+            "inputs",
+            "output",
+            "duration_ms",
+            "created_at",
+        ]
+        read_only_fields = ["id", "document_id", "created_at"]
+
+    def validate_block_kind(self, value):
+        if value not in ALLOWED_BLOCK_KINDS:
+            raise serializers.ValidationError("Unsupported block kind.")
+        return value
+
+
+class NotebookExecutionJobSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    document_id = serializers.UUIDField(source="document.public_id", read_only=True)
+    submitted_by = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NotebookExecutionJob
+        fields = [
+            "id",
+            "document_id",
+            "submitted_by",
+            "block_id",
+            "block_kind",
+            "title",
+            "status",
+            "runtime",
+            "cache_key",
+            "detail",
+            "inputs",
+            "output",
+            "duration_ms",
+            "timeout_seconds",
+            "started_at",
+            "finished_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_submitted_by(self, obj):
+        if not obj.submitted_by_id:
+            return None
+        return {
+            "id": obj.submitted_by_id,
+            "username": obj.submitted_by.get_username(),
+        }
+
+
+class NotebookImportRecordSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    document_id = serializers.UUIDField(source="document.public_id", read_only=True)
+
+    class Meta:
+        model = NotebookImportRecord
+        fields = [
+            "id",
+            "document_id",
+            "source",
+            "external_id",
+            "title",
+            "payload",
+            "metadata",
+            "created_at",
+        ]
+        read_only_fields = ["id", "document_id", "created_at"]
+
+
+class NotebookExecuteSerializer(serializers.Serializer):
+    document_id = serializers.UUIDField(required=False)
+    block_id = serializers.CharField(max_length=160)
+    kind = serializers.ChoiceField(choices=sorted(ALLOWED_BLOCK_KINDS))
+    title = serializers.CharField(max_length=180, required=False, allow_blank=True)
+    content = serializers.CharField()
+    config = serializers.DictField(required=False, child=serializers.CharField(allow_blank=True))
+
+
+class NotebookRestoreSnapshotSerializer(serializers.Serializer):
+    snapshot_id = serializers.UUIDField()
+
+
+class NotebookCapabilitySerializer(serializers.Serializer):
+    kind = serializers.CharField()
+    family = serializers.CharField()
+    title = serializers.CharField()
+    runtime = serializers.CharField()
+    supports_preview = serializers.BooleanField()
+    supports_execute = serializers.BooleanField()
+    supports_export = serializers.BooleanField()
+
+
+class CurrentUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    is_authenticated = serializers.BooleanField()

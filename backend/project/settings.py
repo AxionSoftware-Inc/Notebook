@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 import copy
 from pathlib import Path
+from datetime import timedelta
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # --- Python 3.14 Compatibility Patch ---
@@ -60,12 +62,19 @@ def env_list(name: str, default: str) -> list[str]:
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-^m!5$ju_6sk_fo1*lo=u#%lv%7id5fp4dsh&fv)5wo7=x&)-!#")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
+if not DEBUG and SECRET_KEY == "dev-only-insecure-key-change-me":
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set in production.")
+
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = env_bool("DJANGO_CORS_ALLOW_ALL_ORIGINS", False)
 
 
 # Application definition
@@ -110,12 +119,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '120/min',
-        'notebook_documents': '60/min',
+        'anon': '60/min',
+        'notebook_documents': '40/min',
     },
 }
 
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -141,6 +149,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+USE_X_FORWARDED_HOST = True
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
+
 
 # Database
 # Use SQLite by default so the backend runs cleanly without external services.
@@ -161,6 +183,7 @@ else:
             "PASSWORD": os.getenv("DB_PASSWORD", "root"),
             "HOST": os.getenv("DB_HOST", "localhost"),
             "PORT": os.getenv("DB_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
         }
     }
 
@@ -201,9 +224,26 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+REDIS_URL = os.getenv("REDIS_URL", "")
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "notebook-cache",
+        }
+    }
 
 JAZZMIN_SETTINGS = {
     "site_title": "MathSphere Admin",
@@ -274,20 +314,4 @@ JAZZMIN_UI_TWEAKS = {
     }
 }
 
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = env_bool("DJANGO_CORS_ALLOW_ALL_ORIGINS", DEBUG)
-CORS_ALLOWED_ORIGINS = env_list(
-    "DJANGO_CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
-)
-
-# Optional but recommended for DRF + Session Authentication or CSRF protection
-CSRF_TRUSTED_ORIGINS = env_list(
-    "DJANGO_CSRF_TRUSTED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
-)
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# To allow all origins (less secure, use only for debugging if needed)
-# CORS_ALLOW_ALL_ORIGINS = True
