@@ -1,8 +1,8 @@
 import { ComputationalNotebook } from "@/features/notebook/ui/computational-notebook";
 
 export const metadata = {
-    title: "Computational Notebook | MathSphere",
-    description: "Live worksheet documents for formulas, solving, graphs, tables, code, proofs, and export.",
+    title: "Notebook | Axion",
+    description: "A calm, premium computational notebook for mathematics, code, graphs, and research.",
 };
 
 export default function NotebookPage() {
