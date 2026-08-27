@@ -2,506 +2,728 @@
 
 import React from "react";
 import {
-    CheckCircle2,
-    Grid3X3,
-    History,
-    ListPlus,
-    Lock,
-    LogIn,
-    LogOut,
+    ArrowLeft,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    Clock3,
+    Code2,
+    Copy,
+    Download,
+    FileText,
+    GripVertical,
+    LineChart as LineChartIcon,
+    Moon,
+    MoreHorizontal,
+    PanelLeftClose,
+    PanelLeftOpen,
     Play,
-    Save,
+    Plus,
     Search,
-    Send,
-    ShieldCheck,
+    Share2,
+    Sigma,
+    Sparkles,
+    Sun,
+    Table2,
+    Trash2,
+    X,
 } from "lucide-react";
+import { useTheme } from "next-themes";
+import {
+    CartesianGrid,
+    Line,
+    LineChart,
+    ReferenceLine,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 
-import { createCodeAppendixBlock, getNotebookPlugin, notebookPlugins } from "@/features/notebook/core/plugins";
-import { serializeBlockToMarkdown } from "@/features/notebook/core/runtime";
-import type { NotebookBlock } from "@/features/notebook/core/types";
-import { useNotebookSession } from "@/features/notebook/core/use-notebook-session";
-import { bootstrapDemoNotebookUser } from "@/lib/auth";
-import { createLaboratoryWriterDraftHref, queueWriterImport } from "@/lib/live-writer-bridge";
+import { LaboratoryInlineMathMarkdown } from "@/components/laboratory/laboratory-inline-math-markdown";
 
-const starterBlocks: NotebookBlock[] = [
-    { ...getNotebookPlugin("text").create(), title: "Research question", content: "# Structured Notebook\nA typed workspace for formulas, proofs, execution, history, and publication." },
-    { ...getNotebookPlugin("formula").create(), title: "Model equation", content: "u_t = alpha u_xx" },
-    { ...getNotebookPlugin("solve").create(), title: "Energy integral", content: "sin(x) + x^2 / 5", config: { variable: "x", lower: "0", upper: "3.14", method: "auto" } },
-    { ...getNotebookPlugin("graph").create(), title: "Profile graph", content: "exp(-0.4*x) * sin(x)", config: { xMin: "0", xMax: "10", samples: "160" } },
-    { ...getNotebookPlugin("proof").create(), title: "Proof outline", content: "State the invariant and sketch the proof." },
-    { ...getNotebookPlugin("export").create(), title: "Publication package", content: "Export notebook to Markdown, LaTeX, or Writer draft." },
+type BlockKind = "text" | "formula" | "code" | "graph" | "table" | "result";
+type SaveState = "saved" | "saving";
+
+type NotebookBlock = {
+    id: string;
+    kind: BlockKind;
+    title?: string;
+    content: string;
+};
+
+const blockCatalog: Array<{
+    kind: BlockKind;
+    label: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+}> = [
+    { kind: "text", label: "Text", description: "Notes, headings, and explanation", icon: FileText },
+    { kind: "formula", label: "Formula", description: "Beautiful typeset mathematics", icon: Sigma },
+    { kind: "code", label: "Code", description: "Python and computational snippets", icon: Code2 },
+    { kind: "graph", label: "Graph", description: "Interactive visual output", icon: LineChartIcon },
+    { kind: "table", label: "Table", description: "Structured numeric results", icon: Table2 },
+    { kind: "result", label: "Result", description: "Insight or computed conclusion", icon: Sparkles },
 ];
 
-function downloadText(filename: string, content: string) {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+const starterBlocks: NotebookBlock[] = [
+    {
+        id: "intro",
+        kind: "text",
+        content:
+            "The heat equation describes how heat diffuses through a given region over time. It is a fundamental partial differential equation in mathematical physics.",
+    },
+    {
+        id: "formula",
+        kind: "formula",
+        content: String.raw`\frac{\partial u}{\partial t} = \alpha \nabla^2 u`,
+    },
+    {
+        id: "code",
+        kind: "code",
+        content: "u = exp(-α*t) * sin(k*x)\nplot(u, x=0..2π)",
+    },
+    {
+        id: "graph",
+        kind: "graph",
+        title: "Solution u(x, t)",
+        content: "exp(-0.4*t) * sin(x)",
+    },
+    {
+        id: "result",
+        kind: "result",
+        content:
+            "The solution exhibits sinusoidal behavior in space with exponential decay in time. As time increases, the amplitude diminishes, representing the smoothing effect of heat diffusion.",
+    },
+];
+
+const graphData = Array.from({ length: 129 }, (_, index) => {
+    const x = (Math.PI * 2 * index) / 128;
+    return {
+        x,
+        y: Math.sin(x),
+    };
+});
+
+function createBlock(kind: BlockKind): NotebookBlock {
+    const id = `${kind}-${crypto.randomUUID()}`;
+    if (kind === "text") return { id, kind, content: "Start writing…" };
+    if (kind === "formula") return { id, kind, content: String.raw`f(x) = \sin(x) + x^2` };
+    if (kind === "code") return { id, kind, content: "x = linspace(0, 10, 200)\ny = sin(x)" };
+    if (kind === "graph") return { id, kind, title: "Untitled graph", content: "sin(x)" };
+    if (kind === "table") return { id, kind, title: "Values", content: "x,y\n0,0\n1,0.84\n2,0.91" };
+    return { id, kind, content: "Add a result, interpretation, or conclusion." };
 }
 
 export function NotebookWorkspace() {
-    const session = useNotebookSession({
-        initialBlocks: starterBlocks,
-        initialTitle: "Structured Notebook",
-        initialSummary: "Single-user pro notebook with typed blocks, checkpoints, hybrid compute, and export.",
-    });
-    const [outlineSearch, setOutlineSearch] = React.useState("");
-    const [workspaceNotice, setWorkspaceNotice] = React.useState<string | null>(null);
-    const deferredOutlineSearch = React.useDeferredValue(outlineSearch);
-    const canEdit = Boolean(session.sessionUser);
+    const { theme, setTheme } = useTheme();
+    const [blocks, setBlocks] = React.useState<NotebookBlock[]>(starterBlocks);
+    const [documentTitle, setDocumentTitle] = React.useState("Research Notebook");
+    const [pageTitle, setPageTitle] = React.useState("Heat Equation");
+    const [saveState, setSaveState] = React.useState<SaveState>("saved");
+    const [running, setRunning] = React.useState(false);
+    const [activeBlockId, setActiveBlockId] = React.useState<string | null>("graph");
+    const [insertIndex, setInsertIndex] = React.useState<number | null>(2);
+    const [commandOpen, setCommandOpen] = React.useState(false);
+    const [commandSearch, setCommandSearch] = React.useState("");
+    const [shareOpen, setShareOpen] = React.useState(false);
+    const [historyOpen, setHistoryOpen] = React.useState(false);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [moreOpen, setMoreOpen] = React.useState(false);
+    const [outlineOpen, setOutlineOpen] = React.useState(false);
+    const [menuBlockId, setMenuBlockId] = React.useState<string | null>(null);
+    const [draggingId, setDraggingId] = React.useState<string | null>(null);
 
-    const visibleBlocks = React.useMemo(() => session.blocks.filter((block) => {
-        if (!deferredOutlineSearch.trim()) return true;
-        const haystack = `${block.title} ${block.kind} ${block.content}`.toLowerCase();
-        return haystack.includes(deferredOutlineSearch.trim().toLowerCase());
-    }), [deferredOutlineSearch, session.blocks]);
+    const touch = React.useCallback(() => {
+        setSaveState("saving");
+        window.setTimeout(() => setSaveState("saved"), 650);
+    }, []);
 
-    const activeBlock = session.blocks.find((block) => block.id === session.activeBlockId) ?? session.blocks[0];
-    const staleCount = session.dependencyGraph.filter((item) => item.stale).length;
-    const selectedMarkdown = session.blocks.filter((block) => session.selectedBlockIds.has(block.id)).map(serializeBlockToMarkdown).join("\n\n");
-    const blockingExecutionCount = session.blocks.filter((block) => {
-        if (!getNotebookPlugin(block.kind).supportsExecute) return false;
-        return ["dirty", "queued", "running", "error", "stale"].includes(block.execution.status);
-    }).length;
-    const backendOffline = Boolean(session.saveError?.includes("BACKEND_OFFLINE:"));
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                setCommandOpen(true);
+            }
+            if (event.key === "Escape") {
+                setCommandOpen(false);
+                setShareOpen(false);
+                setHistoryOpen(false);
+                setExportOpen(false);
+                setInsertIndex(null);
+                setMoreOpen(false);
+                setMenuBlockId(null);
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
 
-    const exportWorksheet = (format: "md" | "json" | "tex") => {
-        if (blockingExecutionCount) {
-            setWorkspaceNotice("Export blocked until compute blocks reach a successful state.");
-            return;
-        }
-        setWorkspaceNotice(null);
-        if (format === "json") {
-            downloadText("notebook.json", JSON.stringify({ title: session.documentTitle, summary: session.documentSummary, visibility: session.visibility, blocks: session.blocks }, null, 2));
-            return;
-        }
-        if (format === "tex") {
-            downloadText("notebook.tex", `\\documentclass{article}\n\\usepackage{amsmath,amssymb,listings}\n\\begin{document}\n${session.markdown}\n\\end{document}`);
-            return;
-        }
-        downloadText("notebook.md", session.markdown);
+    const updateBlock = (id: string, patch: Partial<NotebookBlock>) => {
+        setBlocks((current) => current.map((block) => (block.id === id ? { ...block, ...patch } : block)));
+        touch();
     };
 
-    const sendSelectionToWriter = () => {
-        if (blockingExecutionCount) {
-            setWorkspaceNotice("Writer export waits for the latest successful compute state.");
-            return;
-        }
-        setWorkspaceNotice(null);
-        const requestId = queueWriterImport({
-            version: 1,
-            markdown: `# ${session.documentTitle}\n\n${selectedMarkdown || session.markdown}`,
-            title: session.documentTitle,
-            abstract: session.documentSummary,
-            keywords: "notebook, structured, computational",
+    const addBlock = (kind: BlockKind, atIndex = blocks.length) => {
+        const next = createBlock(kind);
+        setBlocks((current) => [...current.slice(0, atIndex), next, ...current.slice(atIndex)]);
+        setActiveBlockId(next.id);
+        setInsertIndex(null);
+        setCommandOpen(false);
+        setCommandSearch("");
+        touch();
+    };
+
+    const removeBlock = (id: string) => {
+        setBlocks((current) => current.filter((block) => block.id !== id));
+        if (activeBlockId === id) setActiveBlockId(null);
+        setMenuBlockId(null);
+        touch();
+    };
+
+    const duplicateBlock = (id: string) => {
+        setBlocks((current) => {
+            const index = current.findIndex((block) => block.id === id);
+            if (index < 0) return current;
+            const source = current[index];
+            const copy = { ...source, id: `${source.kind}-${crypto.randomUUID()}` };
+            return [...current.slice(0, index + 1), copy, ...current.slice(index + 1)];
         });
-        window.location.assign(createLaboratoryWriterDraftHref(requestId));
+        setMenuBlockId(null);
+        touch();
     };
 
-    return (
-        <div id="notebook" className="site-workspace-shell min-h-screen text-foreground">
-            <div className="site-workspace-topbar sticky top-[80px] z-30">
-                <div className="mx-auto flex min-h-16 max-w-[1800px] flex-wrap items-center gap-3 px-4 py-2">
-                    <div className="min-w-0 flex-1">
-                        <div className="site-eyebrow hidden text-accent sm:block">Notebook Core v1.1</div>
-                        <input
-                            value={session.documentTitle}
-                            onChange={(event) => session.setDocumentTitle(event.target.value)}
-                            readOnly={!canEdit}
-                            className="w-full bg-transparent text-lg font-black tracking-tight outline-none read-only:cursor-not-allowed"
-                        />
-                        <div className="hidden text-xs font-semibold text-muted-foreground md:block">
-                            {session.documentId ? `Document ${session.documentId} · revision ${session.revision ?? 1}` : "Unsaved notebook draft"}
-                        </div>
-                    </div>
-                    <div className="hidden min-w-0 flex-[0.8] lg:block">
-                        <input
-                            value={session.documentSummary}
-                            onChange={(event) => session.setDocumentSummary(event.target.value)}
-                            readOnly={!canEdit}
-                            className="h-10 w-full rounded-2xl border border-border/70 bg-background/75 px-3 text-xs font-semibold text-muted-foreground outline-none focus:border-accent/45 read-only:cursor-not-allowed"
-                        />
-                    </div>
-                    <div className="site-toolbar-shell flex shrink-0 items-center gap-1.5 p-1.5">
-                        <button onClick={() => void session.saveDocument()} disabled={!canEdit || session.saveState === "saving"} className="site-btn-accent h-9 px-3 text-xs disabled:opacity-50">
-                            <Save className="h-3.5 w-3.5" />
-                            {session.saveState === "saving" ? "Saving" : "Save"}
-                        </button>
-                        <button onClick={() => void session.createCheckpoint(`Checkpoint ${new Date().toLocaleTimeString()}`)} disabled={!canEdit} className="site-btn h-9 px-3 text-xs disabled:opacity-50">
-                            <History className="h-3.5 w-3.5" />
-                            Checkpoint
-                        </button>
-                        <button onClick={() => void session.runAll(false)} disabled={!canEdit || session.runAllState === "running"} className="site-btn h-9 px-3 text-xs disabled:opacity-50">
-                            <Play className="h-3.5 w-3.5" />
-                            {session.runAllState === "running" ? "Running" : "Run all"}
-                        </button>
-                        <button onClick={() => void session.runAll(true)} disabled={!canEdit || session.runAllState === "running" || !staleCount} className="site-btn h-9 px-3 text-xs disabled:opacity-50">
-                            Stale
-                        </button>
-                        <button onClick={sendSelectionToWriter} disabled={blockingExecutionCount > 0} className="site-btn h-9 px-3 text-xs disabled:opacity-50">
-                            <Send className="h-3.5 w-3.5" />
-                            Writer
-                        </button>
-                        <button onClick={() => exportWorksheet("md")} disabled={blockingExecutionCount > 0} className="site-btn h-9 px-3 text-xs disabled:opacity-50">MD</button>
-                        <button onClick={() => exportWorksheet("tex")} disabled={blockingExecutionCount > 0} className="site-btn h-9 px-3 text-xs disabled:opacity-50">TeX</button>
-                        <button onClick={() => exportWorksheet("json")} className="site-btn h-9 px-3 text-xs">JSON</button>
-                    </div>
-                </div>
-                <div className="mx-auto flex max-w-[1800px] flex-wrap items-center gap-2 px-4 pb-2 text-xs font-semibold">
-                    <span className="site-status-pill px-3 py-1">
-                        {canEdit ? `Editable as ${session.sessionUser?.username}` : "Public read-only mode"}
-                    </span>
-                    <span className="site-status-pill px-3 py-1">
-                        Visibility {session.visibility === "public_read" ? "public read" : "private"}
-                    </span>
-                    {session.isAuthLoading ? <span className="site-status-pill px-3 py-1">Session loading</span> : null}
-                    {blockingExecutionCount ? <span className="site-status-pill px-3 py-1">{blockingExecutionCount} blocks need successful execution before export</span> : null}
-                </div>
-                {workspaceNotice ? <div className="mx-auto max-w-[1800px] px-4 pb-2 text-xs font-semibold text-amber-700">{workspaceNotice}</div> : null}
-                {session.authError ? <div className="mx-auto max-w-[1800px] px-4 pb-2 text-xs font-semibold text-rose-600">{session.authError}</div> : null}
-                {session.saveError ? <div className="mx-auto max-w-[1800px] px-4 pb-2 text-xs font-semibold text-rose-600">{backendOffline ? "Backend offline: API server is unreachable." : session.saveError}</div> : null}
-            </div>
+    const moveBlock = (id: string, direction: -1 | 1) => {
+        setBlocks((current) => {
+            const index = current.findIndex((block) => block.id === id);
+            const target = index + direction;
+            if (index < 0 || target < 0 || target >= current.length) return current;
+            const next = [...current];
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+        setMenuBlockId(null);
+        touch();
+    };
 
-            <div className="mx-auto grid max-w-[1800px] gap-4 px-4 py-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-                <aside className="space-y-3 xl:sticky xl:top-[152px] xl:self-start">
-                    <div className="site-panel p-3">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                            <div className="site-eyebrow">Typed Blocks</div>
-                            <ListPlus className="h-4 w-4 text-muted-foreground" />
+    const runNotebook = () => {
+        setRunning(true);
+        window.setTimeout(() => setRunning(false), 900);
+    };
+
+    const reorderOnDrop = (targetId: string) => {
+        if (!draggingId || draggingId === targetId) return;
+        setBlocks((current) => {
+            const from = current.findIndex((item) => item.id === draggingId);
+            const to = current.findIndex((item) => item.id === targetId);
+            if (from < 0 || to < 0) return current;
+            const next = [...current];
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            return next;
+        });
+        setDraggingId(null);
+        touch();
+    };
+
+    const filteredCatalog = blockCatalog.filter((item) => {
+        const query = commandSearch.trim().toLowerCase();
+        if (!query) return true;
+        return `${item.label} ${item.description}`.toLowerCase().includes(query);
+    });
+
+    return (
+        <div id="notebook" className="min-h-screen bg-[#f5f5f3] text-[#171717] transition-colors dark:bg-[#090909] dark:text-[#f5f5f5]">
+            <header className="sticky top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/90 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#0b0b0b]/88">
+                <div className="mx-auto flex h-[62px] max-w-[1680px] items-center gap-3 px-4 sm:px-6">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <button className="notebook-icon-button" aria-label="Go back">
+                            <ArrowLeft className="h-[18px] w-[18px]" />
+                        </button>
+                        <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#171717] text-sm font-black text-white dark:bg-white dark:text-black">N</div>
+                            <span className="hidden text-sm font-extrabold tracking-[-0.02em] sm:block">Notebook</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-1.5">
-                            {notebookPlugins.map((plugin) => (
-                                <button key={plugin.kind} onClick={() => session.addBlock(plugin.create())} disabled={!canEdit} title={plugin.description} className="flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-2 text-left transition hover:border-accent/30 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50">
-                                    <Grid3X3 className="h-4 w-4 shrink-0 text-accent" />
-                                    <span className="truncate text-xs font-black">{plugin.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                        {!canEdit ? <div className="mt-2 text-xs text-muted-foreground">Sign in to add, edit, execute, and checkpoint blocks.</div> : null}
                     </div>
-                    <div className="site-panel p-3">
-                        <div className="site-eyebrow text-sky-600">Navigator</div>
-                        <div className="mt-3 space-y-2">
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                                <input value={outlineSearch} onChange={(event) => setOutlineSearch(event.target.value)} placeholder="Find block..." className="h-10 w-full rounded-2xl border border-border/70 bg-background/70 pl-9 pr-3 text-sm outline-none focus:border-accent/45" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs font-bold text-muted-foreground">
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-3 py-2">Blocks {session.blocks.length}</div>
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-3 py-2">Stale {staleCount}</div>
-                            </div>
-                        </div>
+
+                    <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-3 md:flex">
+                        <input
+                            value={documentTitle}
+                            onChange={(event) => {
+                                setDocumentTitle(event.target.value);
+                                touch();
+                            }}
+                            className="w-[190px] bg-transparent text-center text-sm font-semibold tracking-[-0.01em] outline-none"
+                        />
+                        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-black/40 dark:text-white/40">
+                            {saveState === "saved" ? <Check className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />}
+                            {saveState === "saved" ? "Saved" : "Saving"}
+                        </span>
                     </div>
-                    <div className="site-panel p-3">
-                        <div className="site-eyebrow text-emerald-600">Capabilities</div>
-                        <div className="mt-3 space-y-1.5">
-                            {session.capabilities.map((capability) => (
-                                <div key={capability.kind} className="rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-xs">
-                                    <div className="font-black">{capability.title}</div>
-                                    <div className="text-muted-foreground">{capability.kind}</div>
+
+                    <div className="flex flex-1 items-center justify-end gap-1.5">
+                        <button onClick={runNotebook} className="notebook-toolbar-button">
+                            <Play className={`h-3.5 w-3.5 ${running ? "animate-pulse" : ""}`} />
+                            <span className="hidden sm:inline">{running ? "Running" : "Run"}</span>
+                        </button>
+                        <button onClick={() => setShareOpen(true)} className="notebook-toolbar-button">
+                            <Share2 className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Share</span>
+                        </button>
+                        <div className="relative">
+                            <button onClick={() => setMoreOpen((value) => !value)} className="notebook-icon-button" aria-label="More actions">
+                                <MoreHorizontal className="h-[18px] w-[18px]" />
+                            </button>
+                            {moreOpen ? (
+                                <div className="notebook-popover absolute right-0 top-11 w-56 p-1.5">
+                                    <MenuButton icon={Clock3} label="History" onClick={() => { setHistoryOpen(true); setMoreOpen(false); }} />
+                                    <MenuButton icon={Download} label="Export" onClick={() => { setExportOpen(true); setMoreOpen(false); }} />
+                                    <MenuButton icon={Search} label="Command palette" shortcut="⌘K" onClick={() => { setCommandOpen(true); setMoreOpen(false); }} />
+                                    <div className="my-1 h-px bg-black/[0.06] dark:bg-white/[0.08]" />
+                                    <MenuButton
+                                        icon={theme === "dark" ? Sun : Moon}
+                                        label={theme === "dark" ? "Light appearance" : "Dark appearance"}
+                                        onClick={() => { setTheme(theme === "dark" ? "light" : "dark"); setMoreOpen(false); }}
+                                    />
                                 </div>
-                            ))}
+                            ) : null}
                         </div>
                     </div>
+                </div>
+            </header>
+
+            <div className="relative mx-auto flex max-w-[1680px]">
+                <aside className={`fixed bottom-5 left-4 z-30 hidden lg:block ${outlineOpen ? "w-64" : "w-auto"}`}>
+                    {outlineOpen ? (
+                        <div className="notebook-popover w-64 p-3">
+                            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                                <div>
+                                    <div className="text-xs font-extrabold">Outline</div>
+                                    <div className="mt-0.5 text-[11px] text-black/40 dark:text-white/40">{blocks.length} blocks</div>
+                                </div>
+                                <button onClick={() => setOutlineOpen(false)} className="notebook-icon-button h-8 w-8">
+                                    <PanelLeftClose className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold hover:bg-black/[0.04] dark:hover:bg-white/[0.06]">
+                                {pageTitle || "Untitled"}
+                            </button>
+                            <div className="mt-1 space-y-0.5">
+                                {blocks.map((block) => (
+                                    <button
+                                        key={block.id}
+                                        onClick={() => {
+                                            document.getElementById(`block-${block.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                            setActiveBlockId(block.id);
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[11px] text-black/55 hover:bg-black/[0.04] hover:text-black dark:text-white/50 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                                    >
+                                        <BlockGlyph kind={block.kind} />
+                                        <span className="truncate">{block.title || blockCatalog.find((item) => item.kind === block.kind)?.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <button onClick={() => setOutlineOpen(true)} className="notebook-floating-button" aria-label="Open outline">
+                            <PanelLeftOpen className="h-4 w-4" />
+                        </button>
+                    )}
                 </aside>
 
-                <main className="space-y-3">
-                    <div className="site-panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-muted-foreground">
-                            <span className="site-status-pill px-3 py-1">Selected {session.selectedBlockIds.size}</span>
-                            <span className="site-status-pill px-3 py-1">Dirty {session.isDirty ? "yes" : "no"}</span>
-                            <span className="site-status-pill px-3 py-1">Stale {staleCount}</span>
+                <main className="w-full px-3 pb-28 pt-5 sm:px-6 sm:pt-7 lg:px-14">
+                    <article className="notebook-document mx-auto min-h-[calc(100vh-120px)] max-w-[1060px] px-5 py-12 sm:px-10 sm:py-16 md:px-16 lg:px-[96px]">
+                        <div className="mx-auto max-w-[820px]">
+                            <input
+                                value={pageTitle}
+                                onChange={(event) => {
+                                    setPageTitle(event.target.value);
+                                    touch();
+                                }}
+                                className="w-full bg-transparent font-serif text-[38px] font-semibold leading-tight tracking-[-0.035em] outline-none placeholder:text-black/20 dark:placeholder:text-white/20 sm:text-[48px]"
+                                placeholder="Untitled"
+                            />
+                            <div className="mt-3 text-[12px] font-medium text-black/32 dark:text-white/30">Edited just now · Computational document</div>
                         </div>
-                        <div className="text-xs font-semibold text-muted-foreground">
-                            Active: <span className="font-black text-foreground">{activeBlock?.title}</span>
-                        </div>
-                    </div>
-                    {!visibleBlocks.length ? (
-                        <div className="site-panel rounded-[1.6rem] border border-dashed border-border/70 p-8 text-sm text-muted-foreground">
-                            No blocks matched your filter.
-                        </div>
-                    ) : visibleBlocks.map((block, index) => (
-                        <NotebookBlockCard
-                            key={block.id}
-                            block={block}
-                            index={index}
-                            active={block.id === session.activeBlockId}
-                            selected={session.selectedBlockIds.has(block.id)}
-                            collapsed={Boolean(session.collapsedBlocks[block.id])}
-                            editable={canEdit}
-                            onFocus={session.setActiveBlockId}
-                            onToggleCollapsed={(blockId) => session.setCollapsedBlocks((current) => ({ ...current, [blockId]: !current[blockId] }))}
-                            onToggleSelected={(blockId) => session.setSelectedBlockIds((current) => {
-                                const next = new Set(current);
-                                if (next.has(blockId)) next.delete(blockId);
-                                else next.add(blockId);
-                                return next;
-                            })}
-                            onChange={(blockId, patch) => session.setBlockPatch(blockId, patch)}
-                            onRunBlock={(blockId) => void session.runBlock(blockId)}
-                            onInsertBlockAfter={session.insertBlockAfter}
-                            onRemove={session.removeBlock}
-                        />
-                    ))}
-                </main>
 
-                <aside className="space-y-3 xl:sticky xl:top-[152px] xl:self-start">
-                    <AccessCard
-                        editable={canEdit}
-                        visibility={session.visibility}
-                        onVisibilityChange={session.setVisibility}
-                        onLogin={session.login}
-                        onLogout={session.logout}
-                        onBootstrapDemo={async () => {
-                            await bootstrapDemoNotebookUser();
-                            await session.login("demo", "demo-demo-2026");
-                        }}
-                        isAuthLoading={session.isAuthLoading}
-                        sessionUser={session.sessionUser}
-                    />
-                    <div className="site-panel p-3">
-                        <div className="site-eyebrow text-amber-600">History</div>
-                        <div className="mt-3 max-h-[240px] space-y-1.5 overflow-auto pr-1">
-                            {session.snapshots.length ? session.snapshots.map((snapshot) => (
-                                <div key={snapshot.id} className="rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-xs">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="truncate font-black">{snapshot.label || snapshot.source}</span>
-                                        <button onClick={() => void session.restoreCheckpoint(snapshot.id)} disabled={!canEdit} className="text-accent disabled:opacity-40">Restore</button>
-                                    </div>
-                                    <div className="mt-1 text-muted-foreground">rev {snapshot.revision} · {snapshot.blocks.length} blocks</div>
-                                </div>
-                            )) : (
-                                <div className="rounded-xl border border-dashed border-border/70 p-3 text-xs text-muted-foreground">No checkpoints yet.</div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="site-panel p-3">
-                        <div className="site-eyebrow text-sky-600">Documents</div>
-                        <div className="mt-3 max-h-[220px] space-y-1.5 overflow-auto pr-1">
-                            {session.documents.length ? session.documents.map((document) => (
-                                <button key={document.id} onClick={() => void session.loadDocument(document)} className="w-full rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-left text-xs transition hover:bg-muted/50">
-                                    <span className="block truncate font-bold">{document.title}</span>
-                                    <span className="block text-xs text-muted-foreground">rev {document.revision} · {document.visibility === "public_read" ? "public read" : "private"}</span>
-                                    <span className="text-[11px] text-muted-foreground">{document.owner ? document.owner.username : "anonymous owner"}</span>
-                                </button>
-                            )) : (
-                                <div className="rounded-xl border border-dashed border-border/70 p-3 text-xs text-muted-foreground">No notebooks loaded from the backend yet.</div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="site-panel p-3">
-                        <div className="site-eyebrow text-emerald-600">Inspector</div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                            <div className="col-span-2 rounded-xl border border-border/70 bg-background/70 p-3">
-                                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Execution history</div>
-                                <div className="mt-2 max-h-36 space-y-1 overflow-auto text-xs text-muted-foreground">
-                                    {session.executionHistory.length ? session.executionHistory.map((entry) => (
-                                        <div key={entry.id} className="rounded-xl border border-border/60 bg-muted/10 px-3 py-2">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="font-bold text-foreground">{entry.title}</span>
-                                                <span>{entry.status}</span>
-                                            </div>
-                                            <div className="mt-1">{entry.detail}</div>
+                        <div className="mx-auto mt-8 max-w-[820px] sm:mt-10">
+                            <InsertPoint index={0} open={insertIndex === 0} onToggle={() => setInsertIndex(insertIndex === 0 ? null : 0)} onAdd={addBlock} />
+
+                            {blocks.map((block, index) => (
+                                <React.Fragment key={block.id}>
+                                    <div
+                                        id={`block-${block.id}`}
+                                        draggable
+                                        onDragStart={() => setDraggingId(block.id)}
+                                        onDragEnd={() => setDraggingId(null)}
+                                        onDragOver={(event) => event.preventDefault()}
+                                        onDrop={() => reorderOnDrop(block.id)}
+                                        onClick={() => setActiveBlockId(block.id)}
+                                        className={`group relative scroll-mt-28 rounded-[20px] transition-all duration-200 ${draggingId === block.id ? "opacity-40" : ""}`}
+                                    >
+                                        <div className={`absolute -left-10 top-3 hidden items-center gap-1 transition-opacity lg:flex ${activeBlockId === block.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                                            <button className="cursor-grab p-1.5 text-black/22 hover:text-black/50 active:cursor-grabbing dark:text-white/20 dark:hover:text-white/50" aria-label="Drag block">
+                                                <GripVertical className="h-4 w-4" />
+                                            </button>
                                         </div>
-                                    )) : <div>No executions recorded yet.</div>}
-                                </div>
-                            </div>
-                            <div className="col-span-2 rounded-xl border border-border/70 bg-background/70 p-3">
-                                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Dependency graph</div>
-                                <div className="mt-2 max-h-36 space-y-1 overflow-auto text-xs text-muted-foreground">
-                                    {session.dependencyGraph.map((item) => (
-                                        <div key={item.id}>{item.title} {item.dependsOn ? "-> depends on solve" : "-> source"} {item.stale ? "(stale)" : ""}</div>
-                                    ))}
-                                </div>
-                            </div>
+
+                                        <div className={`absolute right-2 top-2 z-10 flex items-center gap-0.5 rounded-full border border-black/[0.06] bg-white/90 p-1 shadow-sm backdrop-blur-xl transition-all dark:border-white/[0.08] dark:bg-[#181818]/92 ${activeBlockId === block.id ? "opacity-100" : "pointer-events-none -translate-y-1 opacity-0 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"}`}>
+                                            {(block.kind === "code" || block.kind === "graph") ? (
+                                                <button onClick={(event) => { event.stopPropagation(); runNotebook(); }} className="notebook-context-button" aria-label="Run block">
+                                                    <Play className="h-3.5 w-3.5" />
+                                                </button>
+                                            ) : null}
+                                            <div className="relative">
+                                                <button onClick={(event) => { event.stopPropagation(); setMenuBlockId(menuBlockId === block.id ? null : block.id); }} className="notebook-context-button" aria-label="Block actions">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </button>
+                                                {menuBlockId === block.id ? (
+                                                    <div onClick={(event) => event.stopPropagation()} className="notebook-popover absolute right-0 top-9 w-48 p-1.5">
+                                                        <MenuButton icon={Copy} label="Duplicate" onClick={() => duplicateBlock(block.id)} />
+                                                        <MenuButton icon={ChevronUp} label="Move up" onClick={() => moveBlock(block.id, -1)} />
+                                                        <MenuButton icon={ChevronDown} label="Move down" onClick={() => moveBlock(block.id, 1)} />
+                                                        <div className="my-1 h-px bg-black/[0.06] dark:bg-white/[0.08]" />
+                                                        <MenuButton icon={Trash2} label="Delete" destructive onClick={() => removeBlock(block.id)} />
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        </div>
+
+                                        <BlockRenderer block={block} active={activeBlockId === block.id} onChange={(patch) => updateBlock(block.id, patch)} />
+                                    </div>
+                                    <InsertPoint index={index + 1} open={insertIndex === index + 1} onToggle={() => setInsertIndex(insertIndex === index + 1 ? null : index + 1)} onAdd={addBlock} />
+                                </React.Fragment>
+                            ))}
+
+                            {!blocks.length ? (
+                                <button onClick={() => setInsertIndex(0)} className="mx-auto flex min-h-44 w-full items-center justify-center rounded-[22px] border border-dashed border-black/10 text-sm font-semibold text-black/35 transition hover:border-black/20 hover:text-black/60 dark:border-white/10 dark:text-white/35 dark:hover:border-white/20 dark:hover:text-white/60">
+                                    <Plus className="mr-2 h-4 w-4" /> Add your first block
+                                </button>
+                            ) : null}
+                        </div>
+                    </article>
+                </main>
+            </div>
+
+            {commandOpen ? (
+                <ModalBackdrop onClose={() => setCommandOpen(false)}>
+                    <div className="notebook-modal w-full max-w-xl overflow-hidden p-2">
+                        <div className="flex items-center gap-3 border-b border-black/[0.06] px-3 dark:border-white/[0.08]">
+                            <Search className="h-4 w-4 text-black/35 dark:text-white/35" />
+                            <input
+                                autoFocus
+                                value={commandSearch}
+                                onChange={(event) => setCommandSearch(event.target.value)}
+                                placeholder="Search blocks and actions…"
+                                className="h-14 flex-1 bg-transparent text-sm outline-none placeholder:text-black/30 dark:placeholder:text-white/30"
+                            />
+                            <kbd className="rounded-md border border-black/[0.08] px-1.5 py-1 text-[10px] text-black/35 dark:border-white/[0.1] dark:text-white/35">ESC</kbd>
+                        </div>
+                        <div className="p-1.5">
+                            <div className="px-3 pb-1 pt-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-black/30 dark:text-white/28">Add block</div>
+                            {filteredCatalog.map((item) => (
+                                <button key={item.kind} onClick={() => addBlock(item.kind)} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-3 text-left transition hover:bg-black/[0.045] dark:hover:bg-white/[0.06]">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/[0.045] dark:bg-white/[0.07]"><item.icon className="h-4 w-4" /></span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-sm font-bold">{item.label}</span>
+                                        <span className="mt-0.5 block text-[11px] text-black/38 dark:text-white/35">{item.description}</span>
+                                    </span>
+                                </button>
+                            ))}
                         </div>
                     </div>
-                </aside>
-            </div>
+                </ModalBackdrop>
+            ) : null}
+
+            {shareOpen ? (
+                <ModalBackdrop onClose={() => setShareOpen(false)}>
+                    <div className="notebook-modal w-full max-w-md p-6">
+                        <div className="flex items-start justify-between gap-6">
+                            <div>
+                                <div className="text-lg font-extrabold tracking-[-0.025em]">Share notebook</div>
+                                <div className="mt-1 text-xs leading-5 text-black/42 dark:text-white/40">Invite collaborators or copy a public demo link.</div>
+                            </div>
+                            <button onClick={() => setShareOpen(false)} className="notebook-icon-button"><X className="h-4 w-4" /></button>
+                        </div>
+                        <div className="mt-6 flex items-center gap-2 rounded-[14px] border border-black/[0.08] bg-black/[0.025] p-2 dark:border-white/[0.09] dark:bg-white/[0.04]">
+                            <div className="min-w-0 flex-1 truncate px-2 text-xs text-black/45 dark:text-white/42">notebook.axion.app/demo/heat-equation</div>
+                            <button className="rounded-[10px] bg-black px-3 py-2 text-xs font-bold text-white dark:bg-white dark:text-black">Copy link</button>
+                        </div>
+                        <div className="mt-5 flex items-center justify-between rounded-[14px] border border-black/[0.06] px-4 py-3 dark:border-white/[0.08]">
+                            <div>
+                                <div className="text-xs font-bold">Anyone with the link</div>
+                                <div className="mt-1 text-[11px] text-black/38 dark:text-white/36">Can view this notebook</div>
+                            </div>
+                            <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">View only</span>
+                        </div>
+                    </div>
+                </ModalBackdrop>
+            ) : null}
+
+            {historyOpen ? (
+                <ModalBackdrop onClose={() => setHistoryOpen(false)}>
+                    <div className="notebook-modal w-full max-w-lg p-6">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <div className="text-lg font-extrabold tracking-[-0.025em]">Version history</div>
+                                <div className="mt-1 text-xs text-black/40 dark:text-white/38">Frontend demo snapshots</div>
+                            </div>
+                            <button onClick={() => setHistoryOpen(false)} className="notebook-icon-button"><X className="h-4 w-4" /></button>
+                        </div>
+                        <div className="mt-5 space-y-2">
+                            {[
+                                ["Current version", "Just now", "Auto-saved"],
+                                ["Graph refinement", "12 min ago", "5 blocks"],
+                                ["Initial notebook", "Today, 19:42", "3 blocks"],
+                            ].map(([title, time, detail], index) => (
+                                <button key={title} className="flex w-full items-center gap-3 rounded-[15px] border border-black/[0.06] px-4 py-3 text-left transition hover:bg-black/[0.025] dark:border-white/[0.08] dark:hover:bg-white/[0.04]">
+                                    <span className={`h-2 w-2 rounded-full ${index === 0 ? "bg-emerald-500" : "bg-black/15 dark:bg-white/20"}`} />
+                                    <span className="flex-1">
+                                        <span className="block text-xs font-bold">{title}</span>
+                                        <span className="mt-1 block text-[11px] text-black/38 dark:text-white/35">{time} · {detail}</span>
+                                    </span>
+                                    {index === 0 ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : null}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </ModalBackdrop>
+            ) : null}
+
+            {exportOpen ? (
+                <ModalBackdrop onClose={() => setExportOpen(false)}>
+                    <div className="notebook-modal w-full max-w-md p-6">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <div className="text-lg font-extrabold tracking-[-0.025em]">Export</div>
+                                <div className="mt-1 text-xs text-black/40 dark:text-white/38">Keep the notebook clean; choose a format only when needed.</div>
+                            </div>
+                            <button onClick={() => setExportOpen(false)} className="notebook-icon-button"><X className="h-4 w-4" /></button>
+                        </div>
+                        <div className="mt-5 grid grid-cols-2 gap-2">
+                            {["PDF", "Writer", "Markdown", "LaTeX", "Notebook JSON", "Image"].map((format) => (
+                                <button key={format} className="rounded-[14px] border border-black/[0.07] px-4 py-4 text-left text-xs font-bold transition hover:border-black/15 hover:bg-black/[0.025] dark:border-white/[0.09] dark:hover:border-white/15 dark:hover:bg-white/[0.04]">
+                                    <Download className="mb-3 h-4 w-4 text-black/32 dark:text-white/32" />
+                                    {format}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </ModalBackdrop>
+            ) : null}
         </div>
     );
 }
 
-function AccessCard({
-    editable,
-    visibility,
-    onVisibilityChange,
-    onLogin,
-    onLogout,
-    onBootstrapDemo,
-    isAuthLoading,
-    sessionUser,
-}: {
-    editable: boolean;
-    visibility: "private" | "public_read";
-    onVisibilityChange: (visibility: "private" | "public_read") => void;
-    onLogin: (username: string, password: string) => Promise<void>;
-    onLogout: () => void;
-    onBootstrapDemo: () => Promise<void>;
-    isAuthLoading: boolean;
-    sessionUser: { username: string } | null;
-}) {
-    const [username, setUsername] = React.useState("demo");
-    const [password, setPassword] = React.useState("demo-demo-2026");
-    const [submitting, setSubmitting] = React.useState(false);
-    const [localError, setLocalError] = React.useState<string | null>(null);
-
-    const handleLogin = async () => {
-        setSubmitting(true);
-        setLocalError(null);
-        try {
-            await onLogin(username, password);
-        } catch (error) {
-            setLocalError(error instanceof Error ? error.message : "Login failed.");
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleBootstrapDemo = async () => {
-        setSubmitting(true);
-        setLocalError(null);
-        try {
-            await onBootstrapDemo();
-        } catch (error) {
-            setLocalError(error instanceof Error ? error.message : "Demo bootstrap failed.");
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <div className="site-panel p-3">
-            <div className="flex items-center justify-between gap-2">
-                <div className="site-eyebrow text-violet-600">Access</div>
-                {editable ? <ShieldCheck className="h-4 w-4 text-emerald-600" /> : <Lock className="h-4 w-4 text-amber-600" />}
-            </div>
-            <div className="mt-3 space-y-3">
-                {editable ? (
-                    <>
-                        <div className="rounded-2xl border border-border/70 bg-background/70 px-3 py-3 text-sm">
-                            <div className="font-black">{sessionUser?.username}</div>
-                            <div className="text-xs text-muted-foreground">Authenticated writer session</div>
-                        </div>
-                        <label className="block text-xs font-bold text-muted-foreground">
-                            Visibility
-                            <select value={visibility} onChange={(event) => onVisibilityChange(event.target.value === "public_read" ? "public_read" : "private")} className="mt-2 h-10 w-full rounded-2xl border border-border/70 bg-background px-3 text-sm font-semibold outline-none">
-                                <option value="private">Private</option>
-                                <option value="public_read">Public read</option>
-                            </select>
-                        </label>
-                        <button onClick={onLogout} className="site-btn h-10 w-full justify-center text-xs">
-                            <LogOut className="h-3.5 w-3.5" />
-                            Logout
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 px-3 py-3 text-sm text-muted-foreground">
-                            Anonymous visitors can read public notebooks but cannot change documents, run compute blocks, or restore checkpoints.
-                        </div>
-                        <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Username" className="h-10 w-full rounded-2xl border border-border/70 bg-background px-3 text-sm outline-none" />
-                        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Password" className="h-10 w-full rounded-2xl border border-border/70 bg-background px-3 text-sm outline-none" />
-                        <button onClick={() => void handleLogin()} disabled={submitting || isAuthLoading} className="site-btn-accent h-10 w-full justify-center text-xs disabled:opacity-50">
-                            <LogIn className="h-3.5 w-3.5" />
-                            {submitting ? "Signing in" : "Sign in"}
-                        </button>
-                        <button onClick={() => void handleBootstrapDemo()} disabled={submitting || isAuthLoading} className="site-btn h-10 w-full justify-center text-xs disabled:opacity-50">
-                            Demo account
-                        </button>
-                        {localError ? <div className="text-xs font-semibold text-rose-600">{localError}</div> : null}
-                        {isAuthLoading ? <div className="text-xs text-muted-foreground">Session check in progress.</div> : null}
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function NotebookBlockCard({
+function BlockRenderer({
     block,
-    index,
     active,
-    selected,
-    collapsed,
-    editable,
-    onFocus,
-    onToggleCollapsed,
-    onToggleSelected,
     onChange,
-    onRunBlock,
-    onInsertBlockAfter,
-    onRemove,
 }: {
     block: NotebookBlock;
-    index: number;
     active: boolean;
-    selected: boolean;
-    collapsed: boolean;
-    editable: boolean;
-    onFocus: (blockId: string) => void;
-    onToggleCollapsed: (blockId: string) => void;
-    onToggleSelected: (blockId: string) => void;
-    onChange: (blockId: string, patch: Partial<NotebookBlock>) => void;
-    onRunBlock: (blockId: string) => void;
-    onInsertBlockAfter: (afterId: string, block: NotebookBlock) => void;
-    onRemove: (blockId: string) => void;
+    onChange: (patch: Partial<NotebookBlock>) => void;
 }) {
-    const plugin = getNotebookPlugin(block.kind);
-    return (
-        <section onClick={() => onFocus(block.id)} className={`site-panel overflow-hidden border-l-4 ${active ? "border-l-accent ring-2 ring-accent/15" : "border-l-transparent"}`}>
-            <div className="flex flex-col gap-3 border-b border-border/70 bg-background/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                    <input type="checkbox" checked={selected} onChange={() => onToggleSelected(block.id)} onClick={(event) => event.stopPropagation()} className="h-4 w-4 accent-[var(--accent)]" />
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-accent">
-                        <Grid3X3 className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Block {index + 1} · {plugin.kind}</div>
-                        <input value={block.title} readOnly={!editable} onChange={(event) => onChange(block.id, { title: event.target.value })} className="mt-0.5 w-full bg-transparent text-base font-black tracking-tight outline-none read-only:cursor-not-allowed" />
-                        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-600">{block.execution.status}</div>
-                    </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    {plugin.supportsExecute ? (
-                        <>
-                            <button onClick={() => onRunBlock(block.id)} disabled={!editable} className="site-btn-accent h-9 px-3 text-xs disabled:opacity-50">
-                                <Play className="h-3.5 w-3.5" />
-                                Run
-                            </button>
-                            {block.kind === "solve" ? (
-                                <button onClick={() => onInsertBlockAfter(block.id, createCodeAppendixBlock(block))} disabled={!editable} className="site-btn h-9 px-3 text-xs disabled:opacity-50">Add code</button>
-                            ) : null}
-                        </>
-                    ) : null}
-                    <button onClick={() => onToggleCollapsed(block.id)} className="site-btn h-9 px-3 text-xs">{collapsed ? "Expand" : "Collapse"}</button>
-                    <button onClick={() => onRemove(block.id)} disabled={!editable} className="h-9 rounded-xl border border-border/70 px-3 text-xs font-bold text-muted-foreground hover:text-rose-600 disabled:opacity-50">Remove</button>
+    if (block.kind === "text") {
+        return (
+            <textarea
+                value={block.content}
+                onChange={(event) => onChange({ content: event.target.value })}
+                rows={Math.max(2, Math.ceil(block.content.length / 92))}
+                className="w-full resize-none bg-transparent px-1 py-3 text-[16px] leading-8 text-black/66 outline-none placeholder:text-black/25 dark:text-white/62 dark:placeholder:text-white/25 sm:text-[17px]"
+            />
+        );
+    }
+
+    if (block.kind === "formula") {
+        return (
+            <div className={`relative flex min-h-28 items-center justify-center rounded-[18px] px-7 py-8 transition ${active ? "bg-black/[0.018] dark:bg-white/[0.025]" : ""}`}>
+                <div className="max-w-full overflow-x-auto text-center text-[22px] sm:text-[27px]">
+                    <LaboratoryInlineMathMarkdown content={`$$${block.content}$$`} />
                 </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-2 text-[11px] text-muted-foreground">
-                <span className="site-status-pill px-2.5 py-1">{plugin.family}</span>
-                <span className="site-status-pill px-2.5 py-1">{block.execution.runtime}</span>
-                {block.execution.durationMs ? <span className="site-status-pill px-2.5 py-1">{block.execution.durationMs} ms</span> : null}
-                {block.execution.detail ? <span className="site-status-pill px-2.5 py-1">{block.execution.detail}</span> : null}
-            </div>
-            {!collapsed ? (
-                <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <div className={editable ? "space-y-3" : "space-y-3 rounded-[1.25rem] border border-dashed border-border/60 p-2"}>
-                        {!editable ? <div className="flex items-center gap-2 px-2 text-xs font-semibold text-muted-foreground"><Lock className="h-3.5 w-3.5" />Read-only block editor</div> : null}
-                        <div className={editable ? "" : "pointer-events-none opacity-70"}>{plugin.editor({ block, onChange: (patch) => editable ? onChange(block.id, patch) : undefined })}</div>
+        );
+    }
+
+    if (block.kind === "code") {
+        const lines = block.content.split(/\r?\n/);
+        return (
+            <div className={`overflow-hidden rounded-[16px] border transition ${active ? "border-black/12 shadow-[0_8px_24px_rgba(0,0,0,0.035)] dark:border-white/14" : "border-black/[0.07] dark:border-white/[0.09]"}`}>
+                <div className="grid grid-cols-[42px_minmax(0,1fr)] bg-[#fafaf9] dark:bg-[#111]">
+                    <div className="select-none border-r border-black/[0.055] py-4 text-right font-mono text-[12px] leading-6 text-black/22 dark:border-white/[0.07] dark:text-white/20">
+                        {lines.map((_, index) => <div key={index} className="pr-3">{index + 1}</div>)}
                     </div>
-                    <div className="site-soft-panel rounded-[1.25rem] p-3">
-                        <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Preview
+                    <textarea
+                        value={block.content}
+                        onChange={(event) => onChange({ content: event.target.value })}
+                        rows={Math.max(2, lines.length)}
+                        spellCheck={false}
+                        className="min-h-[82px] resize-none bg-transparent px-4 py-4 font-mono text-[13px] leading-6 text-[#262626] outline-none dark:text-[#e8e8e8]"
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    if (block.kind === "graph") {
+        return (
+            <div className={`rounded-[18px] border bg-white p-4 transition dark:bg-[#101010] sm:p-5 ${active ? "border-black/12 shadow-[0_14px_36px_rgba(0,0,0,0.045)] dark:border-white/14" : "border-black/[0.07] dark:border-white/[0.09]"}`}>
+                <div className="mb-4 flex items-center justify-between gap-4 pr-20">
+                    <input
+                        value={block.title || ""}
+                        onChange={(event) => onChange({ title: event.target.value })}
+                        className="min-w-0 flex-1 bg-transparent text-[13px] font-bold tracking-[-0.01em] outline-none"
+                    />
+                    <span className="hidden rounded-full bg-[#2f6df6]/[0.08] px-2.5 py-1 text-[10px] font-bold text-[#2f6df6] sm:inline">t = 0.5</span>
+                </div>
+                <div className="h-[260px] w-full sm:h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={graphData} margin={{ top: 8, right: 12, bottom: 10, left: -8 }}>
+                            <CartesianGrid stroke="currentColor" strokeOpacity={0.07} vertical={false} />
+                            <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.13} />
+                            <XAxis
+                                dataKey="x"
+                                type="number"
+                                domain={[0, Math.PI * 2]}
+                                ticks={[0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2, Math.PI * 2]}
+                                tickFormatter={(value) => {
+                                    if (Math.abs(value) < 0.01) return "0";
+                                    if (Math.abs(value - Math.PI / 2) < 0.01) return "π/2";
+                                    if (Math.abs(value - Math.PI) < 0.01) return "π";
+                                    if (Math.abs(value - (Math.PI * 3) / 2) < 0.01) return "3π/2";
+                                    return "2π";
+                                }}
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11, fill: "currentColor", opacity: 0.38 }}
+                            />
+                            <YAxis
+                                domain={[-1.1, 1.1]}
+                                ticks={[-1, -0.5, 0, 0.5, 1]}
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11, fill: "currentColor", opacity: 0.38 }}
+                            />
+                            <Tooltip
+                                formatter={(value) => [typeof value === "number" ? value.toFixed(4) : value, "u(x,t)"]}
+                                labelFormatter={(value) => `x = ${Number(value).toFixed(3)}`}
+                                contentStyle={{ borderRadius: 12, border: "1px solid rgba(120,120,120,.16)", fontSize: 11 }}
+                            />
+                            <Line type="monotone" dataKey="y" stroke="#2f6df6" strokeWidth={2.4} dot={false} activeDot={{ r: 4 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        );
+    }
+
+    if (block.kind === "table") {
+        const rows = block.content.split(/\r?\n/).map((line) => line.split(","));
+        return (
+            <div className="overflow-hidden rounded-[16px] border border-black/[0.07] bg-white dark:border-white/[0.09] dark:bg-[#101010]">
+                <div className="border-b border-black/[0.06] px-4 py-3 dark:border-white/[0.08]">
+                    <input value={block.title || "Values"} onChange={(event) => onChange({ title: event.target.value })} className="bg-transparent text-xs font-bold outline-none" />
+                </div>
+                <div className="divide-y divide-black/[0.055] dark:divide-white/[0.07]">
+                    {rows.slice(0, 8).map((row, rowIndex) => (
+                        <div key={rowIndex} className={`grid grid-cols-2 ${rowIndex === 0 ? "bg-black/[0.025] text-black/45 dark:bg-white/[0.04] dark:text-white/45" : ""}`}>
+                            <div className="border-r border-black/[0.055] px-4 py-2.5 font-mono text-xs dark:border-white/[0.07]">{row[0] || ""}</div>
+                            <div className="px-4 py-2.5 font-mono text-xs">{row[1] || ""}</div>
                         </div>
-                        {plugin.preview({ block, onChange: (patch) => editable ? onChange(block.id, patch) : undefined })}
-                    </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`rounded-[17px] border px-4 py-4 sm:px-5 ${active ? "border-[#2f6df6]/20 bg-[#2f6df6]/[0.055]" : "border-[#2f6df6]/12 bg-[#2f6df6]/[0.035]"}`}>
+            <div className="flex gap-3">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2f6df6]/10 text-[#2f6df6]">
+                    <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <textarea
+                    value={block.content}
+                    onChange={(event) => onChange({ content: event.target.value })}
+                    rows={Math.max(2, Math.ceil(block.content.length / 100))}
+                    className="w-full resize-none bg-transparent text-[14px] leading-6 text-black/62 outline-none dark:text-white/60"
+                />
+            </div>
+        </div>
+    );
+}
+
+function InsertPoint({
+    index,
+    open,
+    onToggle,
+    onAdd,
+}: {
+    index: number;
+    open: boolean;
+    onToggle: () => void;
+    onAdd: (kind: BlockKind, index: number) => void;
+}) {
+    return (
+        <div className="group/insert relative flex h-10 items-center justify-center">
+            <div className="absolute inset-x-0 top-1/2 h-px bg-black/[0.05] opacity-0 transition group-hover/insert:opacity-100 dark:bg-white/[0.06]" />
+            <button
+                onClick={onToggle}
+                className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-black/35 shadow-sm transition hover:scale-105 hover:text-black/65 dark:bg-[#151515] dark:text-white/35 dark:hover:text-white/70 ${open ? "border-black/15 opacity-100 dark:border-white/18" : "border-black/[0.07] opacity-0 group-hover/insert:opacity-100 dark:border-white/[0.09]"}`}
+                aria-label="Insert block"
+            >
+                <Plus className={`h-3.5 w-3.5 transition ${open ? "rotate-45" : ""}`} />
+            </button>
+            {open ? (
+                <div className="notebook-popover absolute left-1/2 top-9 z-30 w-[220px] -translate-x-1/2 p-1.5">
+                    {blockCatalog.map((item) => (
+                        <button key={item.kind} onClick={() => onAdd(item.kind, index)} className="flex w-full items-center gap-3 rounded-[12px] px-2.5 py-2 text-left transition hover:bg-black/[0.045] dark:hover:bg-white/[0.06]">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-black/[0.04] dark:bg-white/[0.07]"><item.icon className="h-3.5 w-3.5" /></span>
+                            <span className="text-xs font-semibold">{item.label}</span>
+                        </button>
+                    ))}
+                    <div className="mt-1 border-t border-black/[0.055] px-2.5 pt-2 text-[10px] text-black/30 dark:border-white/[0.07] dark:text-white/30">⌘K for all commands</div>
                 </div>
             ) : null}
-        </section>
+        </div>
+    );
+}
+
+function MenuButton({
+    icon: Icon,
+    label,
+    shortcut,
+    destructive,
+    onClick,
+}: {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    shortcut?: string;
+    destructive?: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button onClick={onClick} className={`flex w-full items-center gap-2.5 rounded-[11px] px-2.5 py-2 text-left text-xs font-semibold transition hover:bg-black/[0.045] dark:hover:bg-white/[0.06] ${destructive ? "text-rose-600 dark:text-rose-400" : ""}`}>
+            <Icon className="h-3.5 w-3.5" />
+            <span className="flex-1">{label}</span>
+            {shortcut ? <span className="text-[10px] font-medium text-black/30 dark:text-white/28">{shortcut}</span> : null}
+        </button>
+    );
+}
+
+function BlockGlyph({ kind }: { kind: BlockKind }) {
+    const item = blockCatalog.find((candidate) => candidate.kind === kind);
+    if (!item) return null;
+    const Icon = item.icon;
+    return <Icon className="h-3.5 w-3.5 shrink-0" />;
+}
+
+function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+    return (
+        <div onMouseDown={onClose} className="fixed inset-0 z-[80] flex items-start justify-center bg-black/20 px-4 pt-[12vh] backdrop-blur-[2px] dark:bg-black/55">
+            <div onMouseDown={(event) => event.stopPropagation()} className="w-full">
+                {children}
+            </div>
+        </div>
     );
 }
