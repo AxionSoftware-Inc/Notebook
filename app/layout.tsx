@@ -3,7 +3,6 @@ import { Manrope, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SiteNavbar } from "@/widgets/layout/site-navbar";
 
 const manrope = Manrope({
     subsets: ["latin"],
@@ -16,8 +15,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-    title: "MathSphere Notebook",
-    description: "Standalone computational notebook extracted from the Mathematics monolith.",
+    title: "Notebook | Axion",
+    description: "A calm computational notebook for mathematics, science, and research.",
 };
 
 export default function RootLayout({
@@ -26,13 +25,12 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-            <html lang="uz" suppressHydrationWarning>
-                <body className={`${manrope.variable} ${playfair.variable} min-h-screen`}>
-                    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-                        <SiteNavbar />
-                        {children}
-                    </ThemeProvider>
-                </body>
-            </html>
+        <html lang="en" suppressHydrationWarning>
+            <body className={`${manrope.variable} ${playfair.variable} min-h-screen`}>
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                    {children}
+                </ThemeProvider>
+            </body>
+        </html>
     );
 }
