@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Playfair_Display } from "next/font/google";
 
-import "./globals.css";
-import "./notebook.css";
+import "./theme.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const manrope = Manrope({
@@ -28,7 +27,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${manrope.variable} ${playfair.variable} min-h-screen`}>
-                <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
                     {children}
                 </ThemeProvider>
             </body>
