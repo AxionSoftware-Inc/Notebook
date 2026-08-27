@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
+import "./notebook.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const manrope = Manrope({
