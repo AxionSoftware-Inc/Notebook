@@ -1,0 +1,12 @@
+@import "./globals.css";
+@import "./notebook.css";
+
+/*
+ * Tailwind v4 defaults the `dark:` variant to the operating-system
+ * `prefers-color-scheme` media query. The notebook uses next-themes,
+ * so that behaviour can make the Tailwind utilities dark while the
+ * custom notebook surfaces are still light (or vice versa).
+ *
+ * Make `.dark` on the document the single source of truth instead.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
