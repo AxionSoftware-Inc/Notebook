@@ -2,6 +2,7 @@
 
 import React from "react";
 
+import { getEcosystemHref } from "@/lib/ecosystem/apps";
 import { getLocalScientificObject, listLocalScientificObjects } from "@/lib/ecosystem/local-object-store";
 import { getLocalProjectTitle, resolveActiveProjectId } from "@/lib/ecosystem/project-context";
 import type { ScientificObject } from "@/lib/ecosystem/contracts";
@@ -84,7 +85,10 @@ export function ProjectObjectTray() {
                 </button>
               </article>
             )) : (
-              <p className="text-xs leading-5 text-black/45 dark:text-white/45">No saved Math results yet. Solve something in Laboratory and press Save.</p>
+              <div className="md:col-span-2 xl:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-black/[0.08] px-3 py-3 dark:border-white/[0.10]">
+                <p className="text-xs leading-5 text-black/45 dark:text-white/45">No saved Math results yet. Solve something in Laboratory and press Save.</p>
+                <a href={getEcosystemHref("math", "notebook", projectId)} className="text-[11px] font-bold text-black/70 hover:text-black dark:text-white/70 dark:hover:text-white">Open Math →</a>
+              </div>
             )}
           </div>
         ) : null}
