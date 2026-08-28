@@ -20,7 +20,7 @@ export function ProjectObjectTray() {
   const [projectTitle, setProjectTitle] = React.useState<string | null>(null);
   const [objects, setObjects] = React.useState<ScientificObject[]>([]);
   const [open, setOpen] = React.useState(false);
-  const [insertedId, setInsertedId] = React.useState<string | null>(null);
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
 
   const refresh = React.useCallback(async () => {
     const activeProjectId = resolveActiveProjectId();
@@ -73,15 +73,13 @@ export function ProjectObjectTray() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent("axion:insert-scientific-object", {
-                      detail: { object, text: resultText(object) },
-                    }));
-                    setInsertedId(object.id);
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(resultText(object));
+                    setCopiedId(object.id);
                   }}
                   className="shrink-0 rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-bold dark:border-white/[0.12] dark:bg-white/[0.06]"
                 >
-                  {insertedId === object.id ? "Inserted" : "Insert"}
+                  {copiedId === object.id ? "Copied" : "Copy result"}
                 </button>
               </article>
             )) : (
