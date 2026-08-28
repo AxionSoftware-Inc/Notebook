@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { ECOSYSTEM_APPS, ECOSYSTEM_NAME, getEcosystemHref, type EcosystemApp } from "@/lib/ecosystem/apps";
-
-const LOCAL_PROJECTS_KEY = "axion.science.projects.v1";
-function findLocalProjectTitle(projectId: string) { try { const raw = window.localStorage.getItem(LOCAL_PROJECTS_KEY); if (!raw) return null; const projects = JSON.parse(raw) as Array<{ id?: string; title?: string }>; return projects.find((project) => project.id === projectId)?.title || null; } catch { return null; } }
+import { getLocalProjectTitle, resolveActiveProjectId } from "@/lib/ecosystem/project-context";
 
 export function EcosystemBar({ currentApp, projectId, projectTitle }: { currentApp: EcosystemApp; projectId?: string | null; projectTitle?: string | null; }) {
   const [activeProjectId, setActiveProjectId] = useState(projectId || null);
   const [activeProjectTitle, setActiveProjectTitle] = useState(projectTitle || null);
-  useEffect(() => { const resolvedId = projectId || new URLSearchParams(window.location.search).get("project"); setActiveProjectId(resolvedId); setActiveProjectTitle(projectTitle || (resolvedId ? findLocalProjectTitle(resolvedId) : null)); }, [projectId, projectTitle]);
+
+  useEffect(() => {
+    const resolvedId = resolveActiveProjectId(projectId);
+    setActiveProjectId(resolvedId);
+    setActiveProjectTitle(projectTitle || getLocalProjectTitle(resolvedId));
+  }, [projectId, projectTitle]);
+
   return (
     <div className="border-b border-[#e7e9ee] bg-[#f7f8fa] text-[#606875]">
       <div className="mx-auto flex h-9 w-full max-w-[1720px] items-center justify-between gap-3 px-4 sm:px-6">
