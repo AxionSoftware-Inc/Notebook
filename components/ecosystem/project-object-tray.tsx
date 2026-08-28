@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { listLocalScientificObjects } from "@/lib/ecosystem/local-object-store";
+import { getLocalScientificObject, listLocalScientificObjects } from "@/lib/ecosystem/local-object-store";
 import { getLocalProjectTitle, resolveActiveProjectId } from "@/lib/ecosystem/project-context";
 import type { ScientificObject } from "@/lib/ecosystem/contracts";
 
@@ -74,7 +74,8 @@ export function ProjectObjectTray() {
                 <button
                   type="button"
                   onClick={async () => {
-                    await navigator.clipboard.writeText(resultText(object));
+                    const hydrated = await getLocalScientificObject(object.id);
+                    await navigator.clipboard.writeText(resultText(hydrated || object));
                     setCopiedId(object.id);
                   }}
                   className="shrink-0 rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-bold dark:border-white/[0.12] dark:bg-white/[0.06]"
