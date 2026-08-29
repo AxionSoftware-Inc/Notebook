@@ -1,3 +1,14 @@
+#notebook {
+  background: var(--ax-canvas) !important;
+  color: var(--ax-text) !important;
+}
+
+#notebook > header {
+  border-color: var(--ax-line) !important;
+  background: color-mix(in srgb, var(--ax-surface) 96%, transparent) !important;
+  color: var(--ax-text) !important;
+}
+
 .notebook-document {
   border: 1px solid var(--ax-line);
   border-radius: 20px;
