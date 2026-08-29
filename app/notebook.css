@@ -1,18 +1,8 @@
 .notebook-document {
-  border: 1px solid rgba(20, 20, 20, 0.065);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.025),
-    0 18px 60px rgba(0, 0, 0, 0.045);
-}
-
-.dark .notebook-document {
-  border-color: rgba(255, 255, 255, 0.085);
-  background: rgba(16, 16, 16, 0.96);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 22px 70px rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--ax-line);
+  border-radius: 20px;
+  background: var(--ax-surface);
+  box-shadow: var(--ax-shadow-subtle);
 }
 
 .notebook-icon-button {
@@ -22,30 +12,32 @@
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: 12px;
-  color: rgba(20, 20, 20, 0.64);
+  border-radius: var(--ax-radius-control);
+  color: var(--ax-text-soft);
   background: transparent;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+  outline: none;
+  transition:
+    background-color var(--ax-motion-fast) var(--ax-ease-standard),
+    border-color var(--ax-motion-fast) var(--ax-ease-standard),
+    color var(--ax-motion-fast) var(--ax-ease-standard),
+    transform var(--ax-motion-fast) var(--ax-ease-standard);
 }
 
 .notebook-icon-button:hover {
-  border-color: rgba(0, 0, 0, 0.055);
-  background: rgba(0, 0, 0, 0.035);
-  color: rgba(0, 0, 0, 0.9);
+  border-color: var(--ax-line);
+  background: var(--ax-surface-soft);
+  color: var(--ax-text);
+}
+
+.notebook-icon-button:focus-visible,
+.notebook-toolbar-button:focus-visible,
+.notebook-context-button:focus-visible,
+.notebook-floating-button:focus-visible {
+  box-shadow: var(--ax-focus-ring);
 }
 
 .notebook-icon-button:active {
-  transform: scale(0.97);
-}
-
-.dark .notebook-icon-button {
-  color: rgba(255, 255, 255, 0.64);
-}
-
-.dark .notebook-icon-button:hover {
-  border-color: rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.94);
+  transform: scale(0.98);
 }
 
 .notebook-toolbar-button {
@@ -54,35 +46,28 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  border-radius: 12px;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: var(--ax-radius-control);
   padding: 0 13px;
-  background: rgba(255, 255, 255, 0.74);
-  color: rgba(20, 20, 20, 0.78);
+  background: var(--ax-surface);
+  color: var(--ax-text);
   font-size: 12px;
-  font-weight: 750;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.015);
-  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  font-weight: 700;
+  outline: none;
+  transition:
+    background-color var(--ax-motion-fast) var(--ax-ease-standard),
+    border-color var(--ax-motion-fast) var(--ax-ease-standard),
+    color var(--ax-motion-fast) var(--ax-ease-standard),
+    transform var(--ax-motion-fast) var(--ax-ease-standard);
 }
 
 .notebook-toolbar-button:hover {
-  border-color: rgba(0, 0, 0, 0.115);
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--ax-surface-soft);
+  border-color: var(--ax-line-strong);
 }
 
 .notebook-toolbar-button:active {
-  transform: scale(0.98);
-}
-
-.dark .notebook-toolbar-button {
-  border-color: rgba(255, 255, 255, 0.085);
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.dark .notebook-toolbar-button:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.075);
+  transform: scale(0.99);
 }
 
 .notebook-context-button {
@@ -91,65 +76,35 @@
   height: 29px;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  color: rgba(20, 20, 20, 0.48);
-  transition: background-color 140ms ease, color 140ms ease;
+  border-radius: var(--ax-radius-control);
+  color: var(--ax-text-faint);
+  outline: none;
+  transition:
+    background-color var(--ax-motion-fast) var(--ax-ease-standard),
+    color var(--ax-motion-fast) var(--ax-ease-standard);
 }
 
 .notebook-context-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: rgba(0, 0, 0, 0.82);
-}
-
-.dark .notebook-context-button {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.dark .notebook-context-button:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.88);
+  background: var(--ax-surface-soft);
+  color: var(--ax-text);
 }
 
 .notebook-popover {
   z-index: 70;
-  border: 1px solid rgba(0, 0, 0, 0.075);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.965);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.045),
-    0 18px 42px rgba(0, 0, 0, 0.10);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-}
-
-.dark .notebook-popover {
-  border-color: rgba(255, 255, 255, 0.095);
-  background: rgba(24, 24, 24, 0.965);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.32),
-    0 18px 50px rgba(0, 0, 0, 0.38);
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-radius-panel);
+  background: var(--ax-surface);
+  box-shadow: var(--ax-shadow-floating);
 }
 
 .notebook-modal {
   margin-left: auto;
   margin-right: auto;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.985);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.055),
-    0 28px 90px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  animation: notebook-modal-in 170ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.dark .notebook-modal {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(20, 20, 20, 0.985);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.34),
-    0 30px 100px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-radius-floating);
+  background: var(--ax-surface);
+  box-shadow: var(--ax-shadow-floating);
+  animation: notebook-modal-in var(--ax-motion-standard) var(--ax-ease-standard);
 }
 
 .notebook-floating-button {
@@ -158,31 +113,24 @@
   height: 38px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0, 0, 0, 0.075);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  color: rgba(0, 0, 0, 0.5);
-  box-shadow: 0 7px 24px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(20px);
-  transition: transform 160ms ease, color 160ms ease, border-color 160ms ease;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: var(--ax-radius-control);
+  background: var(--ax-surface);
+  color: var(--ax-text-soft);
+  box-shadow: var(--ax-shadow-subtle);
+  outline: none;
+  transition:
+    transform var(--ax-motion-fast) var(--ax-ease-standard),
+    color var(--ax-motion-fast) var(--ax-ease-standard),
+    border-color var(--ax-motion-fast) var(--ax-ease-standard),
+    background-color var(--ax-motion-fast) var(--ax-ease-standard);
 }
 
 .notebook-floating-button:hover {
   transform: translateY(-1px);
-  border-color: rgba(0, 0, 0, 0.13);
-  color: rgba(0, 0, 0, 0.82);
-}
-
-.dark .notebook-floating-button {
-  border-color: rgba(255, 255, 255, 0.09);
-  background: rgba(24, 24, 24, 0.94);
-  color: rgba(255, 255, 255, 0.52);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.36);
-}
-
-.dark .notebook-floating-button:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.86);
+  border-color: var(--ax-line-strong);
+  background: var(--ax-surface-soft);
+  color: var(--ax-text);
 }
 
 @keyframes notebook-modal-in {
@@ -198,7 +146,7 @@
 
 @media (max-width: 640px) {
   .notebook-document {
-    border-radius: 20px;
+    border-radius: var(--ax-radius-panel);
   }
 
   .notebook-toolbar-button {
