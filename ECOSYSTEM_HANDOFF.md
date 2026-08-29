@@ -1,7 +1,7 @@
 # Ecosystem Handoff — Notebook
 
-Branch: `ecosystem-v1-foundation-2026-08-28`
-Base: `main` at `17e88346fe554af1f1d6d539527add7553b4d561`
+Active development branch: `main`
+Pre-ecosystem baseline: `freeze/pre-ecosystem-main-2026-08-29`
 
 ## Role
 
