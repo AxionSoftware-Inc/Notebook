@@ -13,7 +13,6 @@
   --accent: var(--ax-accent);
   --accent-soft: var(--ax-accent-soft);
   --accent-alt: var(--ax-accent-strong);
-
   --btn-radius: var(--ax-radius-control);
   --radius-small: 7px;
   --radius-medium: var(--ax-radius-control);
@@ -30,13 +29,12 @@ body {
 }
 
 #notebook {
-  min-height: calc(100vh - 36px);
+  min-height: calc(100vh - 32px);
   background: var(--ax-canvas) !important;
   color: var(--ax-text) !important;
   font-family: var(--ax-font-ui);
 }
 
-/* Workspace navbar: same calm 64px instrument header as Mathematics. */
 #notebook > header {
   position: sticky;
   top: 0;
@@ -54,7 +52,6 @@ body {
   padding-inline: 1.5rem;
 }
 
-/* Turn the old square N into a restrained Laboratory-style scientific mark. */
 #notebook > header .h-8.w-8 {
   position: relative;
   border: 1px solid var(--ax-accent) !important;
@@ -68,14 +65,12 @@ body {
 #notebook > header .h-8.w-8::after {
   content: "";
   position: absolute;
-  inset: 5px;
   border: 1px solid color-mix(in srgb, var(--ax-accent) 65%, transparent);
   border-radius: 999px;
 }
 
-#notebook > header .h-8.w-8::after {
-  inset: 3px 10px;
-}
+#notebook > header .h-8.w-8::before { inset: 5px; }
+#notebook > header .h-8.w-8::after { inset: 3px 10px; }
 
 #notebook > header .h-8.w-8 + span {
   color: var(--ax-text) !important;
@@ -91,9 +86,7 @@ body {
 }
 
 #notebook > header [class*="text-black/40"],
-#notebook > header [class*="text-white/40"] {
-  color: var(--ax-text-faint) !important;
-}
+#notebook > header [class*="text-white/40"] { color: var(--ax-text-faint) !important; }
 
 .notebook-document {
   border: 1px solid var(--ax-line) !important;
@@ -102,10 +95,7 @@ body {
   box-shadow: var(--ax-shadow-subtle) !important;
 }
 
-#notebook article input {
-  color: var(--ax-text);
-}
-
+#notebook article input { color: var(--ax-text); }
 #notebook article > div > input:first-child {
   font-family: var(--ax-font-display);
   font-weight: 600 !important;
@@ -125,7 +115,6 @@ body {
   color: var(--ax-text-soft) !important;
   background: transparent !important;
 }
-
 .notebook-icon-button:hover {
   border-color: var(--ax-line) !important;
   background: var(--ax-surface-soft) !important;
@@ -144,26 +133,18 @@ body {
   font-weight: 650 !important;
   box-shadow: none !important;
 }
-
 .notebook-toolbar-button:first-of-type {
   border-color: transparent !important;
   background: var(--ax-accent-strong) !important;
   color: white !important;
 }
-
-.notebook-toolbar-button:hover {
-  background: var(--ax-surface-soft) !important;
-}
-
-.notebook-toolbar-button:first-of-type:hover {
-  background: var(--ax-accent) !important;
-}
+.notebook-toolbar-button:hover { background: var(--ax-surface-soft) !important; }
+.notebook-toolbar-button:first-of-type:hover { background: var(--ax-accent) !important; }
 
 .notebook-context-button {
   border-radius: 7px !important;
   color: var(--ax-text-faint) !important;
 }
-
 .notebook-context-button:hover {
   background: var(--ax-surface-soft) !important;
   color: var(--ax-text) !important;
@@ -172,9 +153,7 @@ body {
 .notebook-icon-button:focus-visible,
 .notebook-toolbar-button:focus-visible,
 .notebook-context-button:focus-visible,
-.notebook-floating-button:focus-visible {
-  box-shadow: var(--ax-focus-ring) !important;
-}
+.notebook-floating-button:focus-visible { box-shadow: var(--ax-focus-ring) !important; }
 
 .notebook-popover,
 .notebook-modal {
@@ -193,14 +172,11 @@ body {
   color: var(--ax-text-soft) !important;
   box-shadow: var(--ax-shadow-subtle) !important;
 }
-
 .notebook-floating-button:hover {
-  border-color: var(--ax-line-strong) !important;
   background: var(--ax-surface-soft) !important;
   color: var(--ax-text) !important;
 }
 
-/* Existing hard-coded block chrome follows the same panel geometry. */
 #notebook [class*="bg-white/90"],
 #notebook [class*="dark:bg-[#181818]"] {
   border-color: var(--ax-line) !important;
@@ -211,9 +187,7 @@ body {
 
 #notebook [class*="border-black/[0.06]"],
 #notebook [class*="border-black/[0.08]"],
-#notebook [class*="border-black/10"] {
-  border-color: var(--ax-line) !important;
-}
+#notebook [class*="border-black/10"] { border-color: var(--ax-line) !important; }
 
 #notebook [class*="text-black/32"],
 #notebook [class*="text-black/35"],
@@ -222,32 +196,25 @@ body {
 #notebook [class*="text-black/42"],
 #notebook [class*="text-black/45"],
 #notebook [class*="text-black/50"],
-#notebook [class*="text-black/55"] {
-  color: var(--ax-text-soft) !important;
-}
+#notebook [class*="text-black/55"] { color: var(--ax-text-soft) !important; }
 
 #notebook [class*="hover:bg-black/[0.04]"]:hover,
 #notebook [class*="hover:bg-black/[0.045]"]:hover,
-#notebook [class*="hover:bg-black/[0.025]"]:hover {
-  background: var(--ax-surface-soft) !important;
-}
+#notebook [class*="hover:bg-black/[0.025]"]:hover { background: var(--ax-surface-soft) !important; }
 
 #notebook [class*="rounded-xl"],
 #notebook [class*="rounded-[14px]"],
-#notebook [class*="rounded-[15px]"] {
-  border-radius: var(--ax-radius-control) !important;
-}
-
+#notebook [class*="rounded-[15px]"] { border-radius: var(--ax-radius-control) !important; }
 #notebook [class*="rounded-[20px]"],
-#notebook [class*="rounded-[22px]"] {
-  border-radius: var(--ax-radius-panel) !important;
-}
+#notebook [class*="rounded-[22px]"] { border-radius: var(--ax-radius-panel) !important; }
+
+/* Keep scientific blocks visually quiet: active block gets a thin navy cue, not a card glow. */
+#notebook [id^="block-"] { outline: 1px solid transparent; outline-offset: 4px; }
+#notebook [id^="block-"]:focus-within { outline-color: color-mix(in srgb, var(--ax-accent) 28%, transparent); }
 
 .site-shell::before,
 .glow-effect::after,
-.hero-glow {
-  display: none;
-}
+.hero-glow { display: none; }
 
 .glass-panel,
 .site-panel,
@@ -261,43 +228,20 @@ body {
   border-color: var(--ax-line);
   background: var(--ax-surface);
 }
-
 .site-panel,
 .site-soft-panel,
 .site-outline-card,
-.site-lab-card {
-  box-shadow: none;
-  backdrop-filter: none;
-}
-
+.site-lab-card { box-shadow: none; backdrop-filter: none; }
 .site-panel-strong,
 .site-document-frame,
-.site-toolbar-shell {
-  box-shadow: var(--ax-shadow-subtle);
-}
-
-.site-outline-card:hover {
-  border-color: var(--ax-line-strong);
-  background: var(--ax-surface-soft);
-}
-
-.site-workspace-shell {
-  background: var(--ax-canvas);
-}
-
-.dark #notebook {
-  background: var(--ax-canvas) !important;
-  color: var(--ax-text) !important;
-}
+.site-toolbar-shell { box-shadow: var(--ax-shadow-subtle); }
+.site-outline-card:hover { border-color: var(--ax-line-strong); background: var(--ax-surface-soft); }
+.site-workspace-shell { background: var(--ax-canvas); }
+.dark #notebook { background: var(--ax-canvas) !important; color: var(--ax-text) !important; }
 
 @media (max-width: 640px) {
-  #notebook > header > div {
-    padding-inline: 1rem;
-  }
-
-  .notebook-document {
-    border-radius: var(--ax-radius-panel) !important;
-  }
+  #notebook > header > div { padding-inline: 1rem; }
+  .notebook-document { border-radius: var(--ax-radius-panel) !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -305,8 +249,5 @@ body {
   .notebook-toolbar-button,
   .notebook-context-button,
   .notebook-floating-button,
-  .notebook-modal {
-    transition: none !important;
-    animation: none !important;
-  }
+  .notebook-modal { transition: none !important; animation: none !important; }
 }
