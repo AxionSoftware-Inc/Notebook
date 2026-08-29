@@ -2,6 +2,7 @@
 
 import React from "react";
 
+import { AxActionLink, AxBadge, AxButton, AxPanel } from "@/components/axion";
 import { getEcosystemHref } from "@/lib/ecosystem/apps";
 import { getLocalScientificObject, listLocalScientificObjects } from "@/lib/ecosystem/local-object-store";
 import { getLocalProjectTitle, resolveActiveProjectId } from "@/lib/ecosystem/project-context";
@@ -50,44 +51,42 @@ export function ProjectObjectTray() {
   const mathObjects = objects.filter((object) => object.sourceApp === "math");
 
   return (
-    <section className="border-b border-black/[0.06] bg-white px-4 py-2.5 text-[#171717] dark:border-white/[0.08] dark:bg-[#0d0d0d] dark:text-white sm:px-6">
-      <div className="mx-auto max-w-[1680px]">
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-center justify-between gap-4 text-left"
-        >
+    <section className="border-b border-[var(--ax-line)] bg-[var(--ax-surface)] px-4 py-2.5 text-[var(--ax-text)] sm:px-6">
+      <div className="mx-auto max-w-[var(--ax-content-max)]">
+        <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-4 text-left outline-none focus-visible:shadow-[var(--ax-focus-ring)]">
           <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-black/40 dark:text-white/40">Project results</div>
-            <div className="mt-0.5 truncate text-xs font-semibold">{projectTitle || "Active project"} · {mathObjects.length} available</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ax-accent)]">Project results</div>
+            <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs font-semibold">
+              <span className="truncate">{projectTitle || "Active project"}</span>
+              <AxBadge>{mathObjects.length} available</AxBadge>
+            </div>
           </div>
-          <span className="text-[11px] font-semibold text-black/45 dark:text-white/45">{open ? "Hide" : "Open"}</span>
+          <span className="text-[11px] font-semibold text-[var(--ax-text-soft)]">{open ? "Hide" : "Open"}</span>
         </button>
 
         {open ? (
-          <div className="mt-3 grid gap-2 border-t border-black/[0.06] pt-3 dark:border-white/[0.08] md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-3 grid gap-2 border-t border-[var(--ax-line)] pt-3 md:grid-cols-2 xl:grid-cols-3">
             {mathObjects.length ? mathObjects.map((object) => (
-              <article key={object.id} className="flex items-center justify-between gap-3 rounded-xl border border-black/[0.07] bg-[#fafafa] px-3 py-3 dark:border-white/[0.09] dark:bg-white/[0.03]">
+              <AxPanel key={object.id} className="flex items-center justify-between gap-3 px-3 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-semibold">{object.title}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-black/40 dark:text-white/40">{object.domain || object.kind}</div>
+                  <div className="truncate text-xs font-semibold text-[var(--ax-text)]">{object.title}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[var(--ax-text-faint)]">{object.domain || object.kind}</div>
                 </div>
-                <button
-                  type="button"
+                <AxButton
+                  size="sm"
                   onClick={async () => {
                     const hydrated = await getLocalScientificObject(object.id);
                     await navigator.clipboard.writeText(resultText(hydrated || object));
                     setCopiedId(object.id);
                   }}
-                  className="shrink-0 rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-bold dark:border-white/[0.12] dark:bg-white/[0.06]"
                 >
                   {copiedId === object.id ? "Copied" : "Copy result"}
-                </button>
-              </article>
+                </AxButton>
+              </AxPanel>
             )) : (
-              <div className="md:col-span-2 xl:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-black/[0.08] px-3 py-3 dark:border-white/[0.10]">
-                <p className="text-xs leading-5 text-black/45 dark:text-white/45">No saved Math results yet. Solve something in Laboratory and press Save.</p>
-                <a href={getEcosystemHref("math", "notebook", projectId)} className="text-[11px] font-bold text-black/70 hover:text-black dark:text-white/70 dark:hover:text-white">Open Math →</a>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--ax-line)] py-4 md:col-span-2 xl:col-span-3">
+                <p className="text-xs leading-5 text-[var(--ax-text-soft)]">No saved Math results yet. Solve something in Laboratory and press Save.</p>
+                <AxActionLink href={getEcosystemHref("math", "notebook", projectId)} size="sm">Open Math</AxActionLink>
               </div>
             )}
           </div>
