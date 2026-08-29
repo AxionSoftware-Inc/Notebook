@@ -3,6 +3,7 @@ import { Manrope, Playfair_Display } from "next/font/google";
 
 import "./theme.css";
 import "@/styles/axion-science-tokens.css";
+import "@/styles/axion-notebook-chrome.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EcosystemBar } from "@/components/ecosystem/ecosystem-bar";
 
