@@ -1,0 +1,70 @@
+/* Axion Science compatibility layer for legacy Notebook surfaces. */
+
+:root {
+  --background: var(--ax-canvas);
+  --foreground: var(--ax-text);
+  --muted: var(--ax-surface-soft);
+  --muted-foreground: var(--ax-text-soft);
+  --border: var(--ax-line);
+  --surface: var(--ax-surface);
+  --surface-strong: var(--ax-surface);
+  --accent: var(--ax-accent);
+  --accent-soft: var(--ax-accent-soft);
+  --accent-alt: var(--ax-accent-strong);
+
+  --btn-radius: var(--ax-radius-control);
+  --radius-small: 7px;
+  --radius-medium: var(--ax-radius-control);
+  --radius-card: var(--ax-radius-panel);
+  --radius-panel: var(--ax-radius-panel);
+  --radius-panel-strong: var(--ax-radius-floating);
+}
+
+body {
+  background: var(--ax-canvas);
+  color: var(--ax-text);
+  font-family: var(--ax-font-ui);
+  background-image: none;
+}
+
+.site-shell::before,
+.glow-effect::after,
+.hero-glow {
+  display: none;
+}
+
+.glass-panel,
+.site-panel,
+.site-panel-strong,
+.site-soft-panel,
+.site-outline-card,
+.site-toolbar-shell,
+.site-workspace-topbar,
+.site-document-frame,
+.site-lab-card {
+  border-color: var(--ax-line);
+  background: var(--ax-surface);
+}
+
+.site-panel,
+.site-soft-panel,
+.site-outline-card,
+.site-lab-card {
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.site-panel-strong,
+.site-document-frame,
+.site-toolbar-shell {
+  box-shadow: var(--ax-shadow-subtle);
+}
+
+.site-outline-card:hover {
+  border-color: var(--ax-line-strong);
+  background: var(--ax-surface-soft);
+}
+
+.site-workspace-shell {
+  background: var(--ax-canvas);
+}
