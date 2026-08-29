@@ -51,21 +51,19 @@ export function ProjectObjectTray() {
   const mathObjects = objects.filter((object) => object.sourceApp === "math");
 
   return (
-    <section className="border-b border-[var(--ax-line)] bg-[var(--ax-surface)] px-4 py-2.5 text-[var(--ax-text)] sm:px-6">
-      <div className="mx-auto max-w-[var(--ax-content-max)]">
-        <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-4 text-left outline-none focus-visible:shadow-[var(--ax-focus-ring)]">
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ax-accent)]">Project results</div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs font-semibold">
-              <span className="truncate">{projectTitle || "Active project"}</span>
-              <AxBadge>{mathObjects.length} available</AxBadge>
-            </div>
+    <section className="border-b border-[var(--ax-line)] bg-[var(--ax-surface-soft)] text-[var(--ax-text)]">
+      <div className="mx-auto max-w-[var(--ax-content-max)] px-4 sm:px-6">
+        <button type="button" onClick={() => setOpen((value) => !value)} className="flex h-9 w-full items-center justify-between gap-4 text-left outline-none focus-visible:shadow-[var(--ax-focus-ring)]">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ax-accent)]">Project</span>
+            <span className="truncate text-[11px] font-semibold text-[var(--ax-text)]">{projectTitle || "Active project"}</span>
+            <AxBadge className="hidden sm:inline-flex">{mathObjects.length} results</AxBadge>
           </div>
-          <span className="text-[11px] font-semibold text-[var(--ax-text-soft)]">{open ? "Hide" : "Open"}</span>
+          <span className="shrink-0 text-[10px] font-semibold text-[var(--ax-text-soft)]">{open ? "Hide results" : "Show results"}</span>
         </button>
 
         {open ? (
-          <div className="mt-3 grid gap-2 border-t border-[var(--ax-line)] pt-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 border-t border-[var(--ax-line)] py-3 md:grid-cols-2 xl:grid-cols-3">
             {mathObjects.length ? mathObjects.map((object) => (
               <AxPanel key={object.id} className="flex items-center justify-between gap-3 px-3 py-3">
                 <div className="min-w-0">
