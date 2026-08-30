@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, BookOpenText, Braces, ChartNoAxesCombined } from "lucide-react";
 
+import { NotebookHeroScene } from "@/components/home/notebook-hero-scene";
+
 function NotebookMark() {
     return (
         <svg viewBox="0 0 36 36" className="h-8 w-8 text-[var(--ax-accent)]" aria-hidden="true">
@@ -28,80 +30,28 @@ export default function NotebookHomePage() {
                             <Link href="#blocks" className={navLink}>Blocks</Link>
                             <Link href="/workspace" className={navLink}>Workspace</Link>
                         </div>
-                        <Link href="/workspace" className="ml-1 inline-flex h-9 items-center rounded-[var(--ax-radius-control)] bg-[var(--ax-accent-strong)] px-4 text-[11px] font-semibold text-white outline-none transition-colors hover:bg-[var(--ax-accent)] focus-visible:shadow-[var(--ax-focus-ring)]">
-                            Open Notebook
-                        </Link>
+                        <Link href="/workspace" className="ml-1 inline-flex h-9 items-center rounded-[var(--ax-radius-control)] bg-[var(--ax-accent-strong)] px-4 text-[11px] font-semibold text-white outline-none transition-colors hover:bg-[var(--ax-accent)] focus-visible:shadow-[var(--ax-focus-ring)]">Open Notebook</Link>
                     </nav>
                 </div>
             </header>
 
             <main>
-                <section className="mx-auto grid max-w-[1440px] items-center gap-10 px-6 pb-12 pt-12 sm:px-8 lg:grid-cols-[0.66fr_1.34fr] lg:gap-12 lg:px-10 lg:pb-10 lg:pt-10 xl:px-12">
-                    <div className="max-w-[500px] lg:pb-6">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ax-accent)]">Research memory · connected to the Project</p>
-                        <h1 className="mt-4 font-serif text-[clamp(3.35rem,5.4vw,5.9rem)] font-medium leading-[0.95] tracking-[-0.055em]">
+                <section className="relative mx-auto grid min-h-[600px] max-w-[1540px] items-center gap-4 overflow-hidden px-6 pb-6 pt-8 sm:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-0 lg:px-10 lg:pb-4 lg:pt-4 xl:px-12">
+                    <div className="relative z-10 max-w-[560px] py-8 lg:py-14">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--ax-accent)]">Axion Notebook · research memory</p>
+                        <h1 className="mt-4 font-serif text-[clamp(3.65rem,5.9vw,6.65rem)] font-medium leading-[0.92] tracking-[-0.058em]">
                             Reasoning,
                             <br />
-                            kept alive.
+                            kept <span className="italic">alive.</span>
                         </h1>
-                        <div className="mt-6 h-[3px] w-14 bg-[var(--ax-accent)]" />
-                        <p className="mt-5 max-w-[430px] text-[17px] leading-7 text-[var(--ax-text-soft)] sm:text-[18px]">
-                            Capture explanations, formulas, code, figures and results without separating them from the scientific work that produced them.
-                        </p>
-                        <div className="mt-7 flex flex-wrap items-center gap-3">
-                            <Link href="/workspace" className="inline-flex h-11 items-center gap-2 rounded-[var(--ax-radius-control)] bg-[var(--ax-accent-strong)] px-5 text-sm font-semibold text-white shadow-[var(--ax-shadow-subtle)]">
-                                Open Notebook <ArrowRight className="h-4 w-4" />
-                            </Link>
-                            <Link href="#workflow" className="inline-flex h-11 items-center rounded-[var(--ax-radius-control)] border border-[var(--ax-line-strong)] bg-[var(--ax-surface)] px-5 text-sm font-semibold text-[var(--ax-text)]">
-                                See the workflow
-                            </Link>
+                        <div className="mt-7 flex items-center gap-2" aria-hidden="true"><span className="h-[3px] w-16 rounded-full bg-[var(--ax-accent)]" /><span className="h-1.5 w-1.5 rounded-full bg-[#9b8cf0]" /></div>
+                        <p className="mt-6 max-w-[460px] text-[17px] leading-8 text-[var(--ax-text-soft)] sm:text-[18px]">Capture explanations, formulas, code, figures and results without separating them from the scientific work that produced them.</p>
+                        <div className="mt-8 flex flex-wrap items-center gap-3">
+                            <Link href="/workspace" className="inline-flex h-11 items-center gap-2 rounded-[var(--ax-radius-control)] bg-[var(--ax-accent-strong)] px-5 text-sm font-semibold text-white shadow-[var(--ax-shadow-subtle)] transition-colors hover:bg-[var(--ax-accent)]">Open Notebook <ArrowRight className="h-4 w-4" /></Link>
+                            <Link href="#workflow" className="inline-flex h-11 items-center gap-2 rounded-[var(--ax-radius-control)] px-4 text-sm font-semibold text-[var(--ax-text)] transition-colors hover:bg-[var(--ax-surface-soft)]">See the workflow <ArrowRight className="h-3.5 w-3.5 text-[var(--ax-text-faint)]" /></Link>
                         </div>
                     </div>
-
-                    <div className="overflow-hidden rounded-[15px] border border-[var(--ax-line)] bg-[var(--ax-surface)] shadow-[var(--ax-shadow-floating)]">
-                        <div className="flex h-9 items-center justify-between border-b border-[var(--ax-line)] px-3.5 text-[10px] text-[var(--ax-text-faint)]">
-                            <span>Research Notebook · Heat Equation</span><span>Saved</span>
-                        </div>
-                        <div className="grid min-h-[390px] md:grid-cols-[150px_1fr]">
-                            <aside className="border-b border-[var(--ax-line)] bg-[var(--ax-surface-soft)] p-3 md:border-b-0 md:border-r">
-                                <div className="text-[8px] font-semibold uppercase tracking-[0.13em] text-[var(--ax-text-faint)]">Outline</div>
-                                <div className="mt-3 space-y-1 text-[10px] text-[var(--ax-text-soft)]">
-                                    {['Question', 'Model', 'Computation', 'Observation', 'Finding'].map((item, index) => (
-                                        <div key={item} className={`rounded-[6px] px-2 py-2 ${index === 3 ? 'bg-[var(--ax-surface)] font-semibold text-[var(--ax-text)] shadow-[0_1px_2px_rgb(23_36_54_/_0.05)]' : ''}`}>{item}</div>
-                                    ))}
-                                </div>
-                            </aside>
-                            <div className="p-5 sm:p-7">
-                                <div className="mx-auto max-w-[720px]">
-                                    <div className="font-serif text-[29px] tracking-[-0.035em]">Heat diffusion study</div>
-                                    <div className="mt-2 text-[11px] text-[var(--ax-text-faint)]">Project · Thermal transport · edited just now</div>
-                                    <div className="mt-6 space-y-3">
-                                        <div className="rounded-[9px] border border-[var(--ax-line)] bg-[var(--ax-surface)] p-4 text-[12px] leading-6 text-[var(--ax-text-soft)]">
-                                            The model describes how a temperature field evolves under diffusion with a fixed conductivity parameter.
-                                        </div>
-                                        <div className="rounded-[9px] border border-[var(--ax-line)] bg-[var(--ax-surface-soft)] px-4 py-4 text-center font-serif text-[22px] text-[var(--ax-text)]">
-                                            ∂u/∂t = α∇²u
-                                        </div>
-                                        <div className="grid gap-3 sm:grid-cols-[0.9fr_1.1fr]">
-                                            <div className="rounded-[9px] border border-[var(--ax-line)] bg-[#101827] p-4 font-mono text-[10px] leading-5 text-[#dbe7f6]">
-                                                x = linspace(0, 2π, 200)<br />u = exp(-α*t) * sin(x)<br />plot(x, u)
-                                            </div>
-                                            <div className="rounded-[9px] border border-[var(--ax-line)] bg-[var(--ax-surface)] p-4">
-                                                <div className="text-[9px] text-[var(--ax-text-faint)]">Linked result</div>
-                                                <svg viewBox="0 0 250 78" className="mt-2 h-[78px] w-full" aria-hidden="true">
-                                                    <path d="M4 39H246" stroke="#d4dbe5" strokeWidth="1" />
-                                                    <path d="M4 39 C30 8 58 8 84 39 C110 70 138 70 164 39 C190 8 218 8 246 39" fill="none" stroke="#245da8" strokeWidth="2" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div className="rounded-[9px] border border-[var(--ax-line)] bg-[var(--ax-accent-soft)] p-4 text-[12px] leading-6 text-[var(--ax-text)]">
-                                            <span className="font-semibold">Observation.</span> Amplitude decays while the spatial mode remains smooth, matching the expected diffusion behavior.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div className="relative min-w-0 lg:-ml-14 lg:-mr-12 xl:-ml-20 xl:-mr-20"><NotebookHeroScene /></div>
                 </section>
 
                 <section id="workflow" className="border-y border-[var(--ax-line)] bg-[var(--ax-surface)]">
