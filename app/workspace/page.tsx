@@ -8,9 +8,9 @@ export const metadata = {
 
 export default function NotebookWorkspacePage() {
     return (
-        <>
+        <div className="ax-workspace-root ax-notebook-workspace">
             <ProjectObjectTray />
             <ComputationalNotebook />
-        </>
+        </div>
     );
 }
