@@ -51,24 +51,24 @@ export function ProjectObjectTray() {
   const mathObjects = objects.filter((object) => object.sourceApp === "math");
 
   return (
-    <section className="border-b border-[var(--ax-line)] bg-[var(--ax-surface-soft)] text-[var(--ax-text)]">
-      <div className="mx-auto max-w-[var(--ax-content-max)] px-4 sm:px-6">
-        <button type="button" onClick={() => setOpen((value) => !value)} className="flex h-9 w-full items-center justify-between gap-4 text-left outline-none focus-visible:shadow-[var(--ax-focus-ring)]">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ax-accent)]">Project</span>
+    <section className="ax-work-subnav text-[var(--ax-text)]">
+      <div className="ax-work-subnav-inner">
+        <button type="button" onClick={() => setOpen((value) => !value)} className="flex h-11 w-full items-center justify-between gap-4 text-left outline-none focus-visible:shadow-[var(--ax-focus-ring)]">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[var(--ax-accent)]">Project</span>
             <span className="truncate text-[11px] font-semibold text-[var(--ax-text)]">{projectTitle || "Active project"}</span>
             <AxBadge className="hidden sm:inline-flex">{mathObjects.length} results</AxBadge>
           </div>
-          <span className="shrink-0 text-[10px] font-semibold text-[var(--ax-text-soft)]">{open ? "Hide results" : "Show results"}</span>
+          <span className="shrink-0 text-[10px] font-semibold text-[var(--ax-text-soft)]">{open ? "Hide" : "Results"}</span>
         </button>
 
         {open ? (
-          <div className="grid gap-2 border-t border-[var(--ax-line)] py-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 border-t border-[var(--ax-work-line)] py-4 md:grid-cols-2 xl:grid-cols-3">
             {mathObjects.length ? mathObjects.map((object) => (
-              <AxPanel key={object.id} className="flex items-center justify-between gap-3 px-3 py-3">
+              <AxPanel key={object.id} className="flex items-center justify-between gap-3 rounded-[var(--ax-work-panel-radius)] px-4 py-3 shadow-none">
                 <div className="min-w-0">
                   <div className="truncate text-xs font-semibold text-[var(--ax-text)]">{object.title}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[var(--ax-text-faint)]">{object.domain || object.kind}</div>
+                  <div className="mt-1 text-[9px] uppercase tracking-[0.13em] text-[var(--ax-text-faint)]">{object.domain || object.kind}</div>
                 </div>
                 <AxButton
                   size="sm"
@@ -78,11 +78,11 @@ export function ProjectObjectTray() {
                     setCopiedId(object.id);
                   }}
                 >
-                  {copiedId === object.id ? "Copied" : "Copy result"}
+                  {copiedId === object.id ? "Copied" : "Copy"}
                 </AxButton>
               </AxPanel>
             )) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--ax-line)] py-4 md:col-span-2 xl:col-span-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--ax-work-line)] py-4 md:col-span-2 xl:col-span-3">
                 <p className="text-xs leading-5 text-[var(--ax-text-soft)]">No saved Math results yet. Solve something in Laboratory and press Save.</p>
                 <AxActionLink href={getEcosystemHref("math", "notebook", projectId)} size="sm">Open Math</AxActionLink>
               </div>
