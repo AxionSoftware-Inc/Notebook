@@ -6,6 +6,7 @@ import "@/styles/axion-science-tokens.css";
 import "@/styles/axion-premium-landing.css";
 import "@/styles/axion-notebook-chrome.css";
 import "@/styles/axion-premium-workspace.css";
+import "@/styles/axion-notebook-final-polish.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EcosystemBar } from "@/components/ecosystem/ecosystem-bar";
 import { EcosystemKeyboardNav } from "@/components/ecosystem/ecosystem-keyboard-nav";
