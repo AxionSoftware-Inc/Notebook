@@ -1,0 +1,56 @@
+/* Final scoped migration layer for the legacy Notebook document component.
+ * Keep semantic math/graph rendering intact while removing old oversized SaaS geometry.
+ */
+
+.ax-notebook-workspace .notebook-document [class*="rounded-[16px]"],
+.ax-notebook-workspace .notebook-document [class*="rounded-[17px]"],
+.ax-notebook-workspace .notebook-document [class*="rounded-[18px]"],
+.ax-notebook-workspace .notebook-document [class*="rounded-[20px]"],
+.ax-notebook-workspace .notebook-document [class*="rounded-[22px]"] {
+  border-radius: var(--ax-work-panel-radius) !important;
+}
+
+.ax-notebook-workspace .notebook-document [class*="border-black/[0.05]"],
+.ax-notebook-workspace .notebook-document [class*="border-black/[0.055]"],
+.ax-notebook-workspace .notebook-document [class*="border-black/[0.06]"],
+.ax-notebook-workspace .notebook-document [class*="border-black/[0.07]"],
+.ax-notebook-workspace .notebook-document [class*="border-black/[0.08]"],
+.ax-notebook-workspace .notebook-document [class*="border-black/10"],
+.ax-notebook-workspace .notebook-document [class*="border-black/12"] {
+  border-color: var(--ax-work-line) !important;
+}
+
+.ax-notebook-workspace .notebook-document [class*="bg-[#fafaf9]"] {
+  background: var(--ax-work-surface-muted) !important;
+}
+
+.ax-notebook-workspace .notebook-document [class*="bg-black/[0.018]"],
+.ax-notebook-workspace .notebook-document [class*="bg-black/[0.025]"],
+.ax-notebook-workspace .notebook-document [class*="bg-black/[0.035]"],
+.ax-notebook-workspace .notebook-document [class*="bg-black/[0.04]"] {
+  background: var(--ax-work-surface-muted) !important;
+}
+
+.ax-notebook-workspace .notebook-document [class*="shadow-[0_8px_24px"],
+.ax-notebook-workspace .notebook-document [class*="shadow-[0_14px_36px"] {
+  box-shadow: none !important;
+}
+
+.ax-notebook-workspace .notebook-document textarea,
+.ax-notebook-workspace .notebook-document input {
+  caret-color: var(--ax-accent);
+}
+
+.ax-notebook-workspace .notebook-linked-results-host {
+  color: var(--ax-text);
+}
+
+.ax-notebook-workspace .notebook-linked-result:last-child {
+  padding-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-notebook-workspace .notebook-document * {
+    scroll-behavior: auto !important;
+  }
+}
